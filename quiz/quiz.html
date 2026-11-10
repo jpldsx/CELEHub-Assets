@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Quiz – CELEHub Quiz</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Cpath d='M50 24L16 42l34 18 34-18z' fill='white'/%3E%3Cpath d='M30 54v14c0 5 9 10 20 10s20-5 20-10V54L50 64z' fill='white'/%3E%3Crect x='80' y='44' width='4' height='20' rx='2' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/quiz.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="mt-header sticky-top">
+    <div class="container-fluid px-3 px-lg-4 d-flex align-items-center gap-3">
+      <a class="mt-brand text-decoration-none" href="./" aria-label="CELEHub Quiz home">
+        <span class="mt-logo"><i class="bi bi-mortarboard-fill"></i></span>
+        <span class="mt-brand-text">CELE<strong>Hub</strong> Quiz</span>
+      </a>
+      <span id="topicBadge" class="topic-badge ms-auto" hidden></span>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="container-fluid px-3 px-lg-4 py-3 py-lg-4 quiz-wrap">
+    <div id="loading" class="gate-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading…</div>
+    <p id="fatal" class="q-fatal" hidden></p>
+
+    <!-- 1. setup -->
+    <section id="setup" class="q-panel" hidden aria-labelledby="setupTitle">
+      <a class="q-back" href="./"><i class="bi bi-arrow-left"></i> All topics</a>
+      <h1 id="setupTitle" class="h4 mb-1">Set up your quiz</h1>
+      <p id="setupSub" class="text-secondary mb-3"></p>
+
+      <div class="q-group">
+        <div class="q-label">How many questions?</div>
+        <div id="optCount" class="q-seg" role="radiogroup" aria-label="Number of questions"></div>
+      </div>
+      <div class="q-group">
+        <div class="q-label">Timer</div>
+        <div id="optMode" class="q-seg" role="radiogroup" aria-label="Timer">
+          <button type="button" role="radio" data-v="free"><i class="bi bi-infinity"></i> No timer</button>
+          <button type="button" role="radio" data-v="item"><i class="bi bi-stopwatch"></i> Per question</button>
+          <button type="button" role="radio" data-v="total"><i class="bi bi-hourglass-split"></i> Whole exam</button>
+        </div>
+        <div id="modeHelp" class="q-help"></div>
+        <div id="timeBox" class="q-time" hidden>
+          <label for="timeVal" id="timeLabel"></label>
+          <input id="timeVal" type="number" inputmode="numeric" class="form-control">
+          <span id="timeUnit"></span>
+        </div>
+      </div>
+      <button id="startBtn" type="button" class="btn btn-accent q-start">Start quiz <i class="bi bi-arrow-right ms-1"></i></button>
+      <p id="startMsg" class="gate-msg bad" role="alert"></p>
+    </section>
+
+    <!-- 2. exam -->
+    <section id="exam" class="q-panel q-exam" hidden aria-label="Quiz">
+      <div class="q-top">
+        <div class="q-count"><b id="qNow">1</b> / <span id="qTotal">10</span></div>
+        <div class="q-bar" aria-hidden="true"><span id="qBar"></span></div>
+        <div id="qTimer" class="q-timer" role="timer" aria-live="off"><i class="bi bi-clock"></i> <span id="qTimerText">0:00</span></div>
+      </div>
+      <div id="qStage" class="q-stage" aria-live="polite">
+        <article id="qCard" class="q-card"></article>
+      </div>
+      <div class="q-nav">
+        <button id="btnPrev" type="button" class="btn q-btn"><i class="bi bi-arrow-left"></i> Back</button>
+        <button id="btnNext" type="button" class="btn btn-accent q-btn-main">Next <i class="bi bi-arrow-right"></i></button>
+        <button id="btnSubmit" type="button" class="btn q-submit" hidden><i class="bi bi-send-fill"></i> Submit</button>
+      </div>
+      <div id="navDots" class="q-dots" role="group" aria-label="Question navigator"></div>
+      <p class="q-keys">Keys: <kbd>A</kbd>–<kbd>F</kbd> choose · <kbd>←</kbd> <kbd>→</kbd> move</p>
+    </section>
+
+    <!-- 3. review -->
+    <section id="review" class="q-panel" hidden aria-labelledby="scoreTitle">
+      <div class="q-score">
+        <div id="scoreRing" class="q-ring"><span id="scorePct">0%</span></div>
+        <div>
+          <h1 id="scoreTitle" class="h4 mb-1"></h1>
+          <p id="scoreSub" class="text-secondary mb-0"></p>
+        </div>
+      </div>
+      <div class="q-actions">
+        <button id="btnAgain" type="button" class="btn btn-accent"><i class="bi bi-arrow-repeat"></i> Try again</button>
+        <a class="btn q-btn" href="./"><i class="bi bi-grid"></i> Other topics</a>
+      </div>
+      <div id="rvFilters" class="q-seg q-filters" role="group" aria-label="Show"></div>
+      <div class="q-stage"><article id="rvCard" class="q-card"></article></div>
+      <div class="q-nav">
+        <button id="rvPrev" type="button" class="btn q-btn"><i class="bi bi-arrow-left"></i> Previous</button>
+        <span id="rvPos" class="q-pos"></span>
+        <button id="rvNext" type="button" class="btn q-btn">Next <i class="bi bi-arrow-right"></i></button>
+      </div>
+      <div id="rvDots" class="q-dots" role="group" aria-label="Review navigator"></div>
+    </section>
+
+    <!-- submit confirmation -->
+    <div id="confirm" class="q-modal" hidden role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="q-modal-card">
+        <h2 id="confirmTitle" class="h5">Submit now?</h2>
+        <p id="confirmText" class="text-secondary"></p>
+        <div class="d-flex gap-2 justify-content-end">
+          <button id="confirmNo" type="button" class="btn q-btn">Keep going</button>
+          <button id="confirmYes" type="button" class="btn btn-accent">Submit</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script defer src="vendor/bootstrap.bundle.min.js"></script>
+  <script defer src="js/config.js"></script>
+  <script defer src="js/quiz.js"></script>
+  <noscript><div class="gate" style="display:grid"><div class="gate-card">Please enable JavaScript to use CELEHub Quiz.</div></div></noscript>
+</body>
+</html>
