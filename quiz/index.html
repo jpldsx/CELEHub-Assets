@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CELEHub Quiz – Practice for CE Students</title>
+  <meta name="description" content="CELEHub Quiz: timed and untimed multiple-choice practice for CE board-exam topics, with answers and explanations after you submit.">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Cpath d='M50 24L16 42l34 18 34-18z' fill='white'/%3E%3Cpath d='M30 54v14c0 5 9 10 20 10s20-5 20-10V54L50 64z' fill='white'/%3E%3Crect x='80' y='44' width='4' height='20' rx='2' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/quiz.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="mt-header sticky-top">
+    <div class="container-fluid px-3 px-lg-4 d-flex align-items-center gap-3">
+      <a class="mt-brand text-decoration-none" href="./" aria-label="CELEHub Quiz home">
+        <span class="mt-logo"><i class="bi bi-mortarboard-fill"></i></span>
+        <span class="mt-brand-text">CELE<strong>Hub</strong> Quiz</span>
+      </a>
+      <div class="as-box ms-auto" id="asBox" hidden>
+        <i class="bi bi-person-circle"></i>
+        <span><b id="asName"></b> <span id="asId" class="cm-vid"></span></span>
+        <button type="button" id="notYou" class="link-btn">Not you?</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="container-fluid px-3 px-lg-4 py-3 py-lg-4 quiz-wrap">
+    <div class="hero mb-3 mb-lg-4">
+      <div>
+        <h1 class="h4 mb-1">Practice quiz</h1>
+        <p class="mb-0 hero-sub">Pick a topic. Random questions every time. Answers and explanations after you submit.</p>
+      </div>
+    </div>
+    <div id="topicGrid" class="topic-grid" aria-live="polite"></div>
+    <p id="topicErr" class="gate-msg bad" hidden></p>
+    <p class="quiz-foot"><a id="celehubLink" href="https://celehub.pages.dev/">CELEHub &middot; solved problems</a></p>
+  </main>
+
+  <!-- ============ QUICK SURVEY (shown before first use) ============ -->
+  <div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div class="gate-card">
+      <div id="gateLoading" class="gate-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading…</div>
+
+      <div id="gateVerify" class="gate-verify" hidden>
+        <div class="gate-logo" aria-hidden="true"><i class="bi bi-shield-check"></i></div>
+        <h2 class="gate-title">Verifying you are human</h2>
+        <p class="gate-sub">CELEHub Quiz is checking your connection before the quick survey. This only takes a few seconds.</p>
+        <div id="tsBox" class="ts-box"></div>
+        <div id="verifyMsg" class="gate-msg" role="status"></div>
+        <p class="gate-verify-note"><i class="bi bi-cloud-check"></i> Protected by Cloudflare</p>
+      </div>
+
+      <form id="gateForm" novalidate hidden>
+        <div class="gate-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></div>
+        <h2 id="gateTitle" class="gate-title">Quick survey</h2>
+        <p class="gate-sub">Tell us a little about yourself before you start. Please use your <strong>real full name</strong> and be 18 or older. It only takes a few seconds. <strong>Your name is never shown</strong> &mdash; you appear only as an anonymous visitor ID.</p>
+
+        <div class="mb-2">
+          <label for="gName" class="gate-label">Full name</label>
+          <input id="gName" name="fullName" type="text" class="form-control" maxlength="80" required autocomplete="name" placeholder="First name and last name">
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-4">
+            <label for="gAge" class="gate-label">Age</label>
+            <input id="gAge" name="age" type="number" class="form-control" min="5" max="99" inputmode="numeric" required placeholder="e.g. 21">
+          </div>
+          <div class="col-8">
+            <label for="gSchool" class="gate-label">School</label>
+            <input id="gSchool" name="school" type="text" class="form-control" maxlength="100" required autocomplete="off" list="schoolList" placeholder="College / university (full name)">
+          <datalist id="schoolList"></datalist>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="gCenter" class="gate-label">Review center</label>
+          <input id="gCenter" name="reviewCenter" type="text" class="form-control" maxlength="100" required placeholder="Type &ldquo;None&rdquo; if you don&rsquo;t have one">
+        </div>
+
+        <!-- honeypot -->
+        <input type="text" name="website" class="d-none" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+        <p class="gate-why">Why we ask: to confirm you are an adult and to learn who uses CELEHub (students, schools, review centers). Your name is seen only by the site owner. Only a random Visitor ID identifies you. We never ask for an email or payment details.</p>
+        <label class="gate-consent">
+          <input type="checkbox" name="consent" required>
+          <span>I am <strong>18 or older</strong> and I agree that CELEHub may collect and use these details as explained in the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>.</span>
+        </label>
+
+        <div id="gateMsg" class="gate-msg" role="alert"></div>
+
+        <button id="gateSubmit" class="btn btn-accent w-100" type="submit" disabled>
+          Continue to the quiz <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </form>
+
+      <div id="gateMinor" class="gate-minor" hidden>
+        <div class="gate-logo warn" aria-hidden="true"><i class="bi bi-person-hearts"></i></div>
+        <h2 class="gate-title">This site is for ages 18 and up</h2>
+        <p class="gate-sub">CELEHub Quiz is practice for adult board-exam examinees. We did <strong>not</strong> save anything you typed. Here are educational videos that fit your age instead.</p>
+        <a id="minorGo" class="btn btn-accent w-100" href="#" rel="noopener">Go to educational videos <i class="bi bi-arrow-right ms-1"></i></a>
+        <p id="minorCount" class="gate-count" aria-live="polite"></p>
+      </div>
+
+      <div id="gateDone" class="gate-done" hidden>
+        <div class="gate-logo ok" aria-hidden="true"><i class="bi bi-shield-check"></i></div>
+        <h2 class="gate-title">You&rsquo;re all set!</h2>
+        <p class="gate-sub">Your name stays private. You are practicing as this visitor ID:</p>
+        <div class="vid-card" aria-live="polite"><span id="doneLabel"></span><span id="doneId" class="cm-vid"></span></div>
+        <button id="gateContinue" type="button" class="btn btn-accent w-100">Start practicing <i class="bi bi-arrow-right ms-1"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="vendor/bootstrap.bundle.min.js"></script>
+  <script defer src="js/config.js"></script>
+  <script defer src="js/checks.js"></script>
+  <script defer src="js/home.js"></script>
+  <script defer src="js/gate.js"></script>
+  <noscript><div class="gate" style="display:grid"><div class="gate-card">Please enable JavaScript to use CELEHub Quiz.</div></div></noscript>
+</body>
+</html>
