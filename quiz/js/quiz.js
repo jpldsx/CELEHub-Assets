@@ -72,7 +72,7 @@
     item: "A clock on every question. Time's up, you move on. No going back.",
     total: "One clock for everything. It submits itself at zero."
   };
-  var CHIPS = { item: [15, 30, 45, 60, 90, 120], total: [10, 20, 30, 45, 60, 90, 120] };
+  var CHIPS = { item: [15, 30, 45, 60, 90, 120], total: [30, 45, 60, 90, 120] };
   function paintSetup(typing) {
     [].forEach.call($("optCount").children, function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-v") === opt.n)); });
     [].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.mode)); });
