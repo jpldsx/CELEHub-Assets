@@ -20,7 +20,7 @@
   }
   function fmt(ms) { var s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); s = s % 60; return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (s < 10 ? "0" : "") + s; }
   function show(id) { ["setup", "exam", "review", "loading"].forEach(function (k) { $(k).hidden = k !== id; }); document.body.classList.toggle("setup-mode", id === "setup"); window.scrollTo(0, 0); }
-  function fatal(t) { $("loading").hidden = true; ["setup", "exam", "review"].forEach(function (k) { $(k).hidden = true; }); var f = $("fatal"); f.hidden = false; f.innerHTML = esc(t) + ' <a href="./">Back to topics</a>'; }
+  function fatal(t) { if (window.QuizLook) QuizLook.drop(); $("loading").hidden = true; ["setup", "exam", "review"].forEach(function (k) { $(k).hidden = true; }); var f = $("fatal"); f.hidden = false; f.innerHTML = esc(t) + ' <a href="./">Back to topics</a>'; }
   function reduceMotion() { return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; }
 
   var topic = (new URLSearchParams(location.search).get("t") || "").toLowerCase();
@@ -40,13 +40,15 @@
     if (!(a[0] && a[0].ok && a[0].name)) { location.replace("./"); return; }
     avail = (a[1] && a[1].ok && a[1].topics[topic]) || 0;
     if (!avail) { fatal("No questions in " + T.name + " yet. Check back soon."); return; }
-    buildSetup(); show("setup");
+    buildSetup(); show("setup"); if (window.QuizLook) QuizLook.reveal();
   }).catch(function () { fatal("Couldn't load. Check your connection and refresh."); });
 
   /* ---------------- setup ---------------- */
   function countOptions() { var o = [10, 25, 50].filter(function (v) { return v <= avail; }); return o.length ? o : [avail]; }
   function buildSetup() {
     $("setupTitle").textContent = T.name;
+    $("setup").style.setProperty("--t1", T.tint || "#4f46e5");
+    if (window.QuizLook) document.querySelector(".su-hero").style.background = QuizLook.grad(T.tint || "#4f46e5");
     $("setupSub").textContent = (T.full ? T.full + " \u00b7 " : "") + avail + " question" + (avail === 1 ? "" : "s");
     var co = countOptions(); opt.n = co.indexOf(10) >= 0 ? 10 : co[0];
     $("optCount").innerHTML = co.map(function (v) { return '<button type="button" role="radio" data-v="' + v + '">' + v + "</button>"; }).join("");
