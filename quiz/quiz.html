@@ -29,31 +29,37 @@
     <p id="fatal" class="q-fatal" hidden></p>
 
     <!-- 1. setup -->
-    <section id="setup" class="q-panel" hidden aria-labelledby="setupTitle">
-      <a class="q-back" href="./"><i class="bi bi-arrow-left"></i> All topics</a>
-      <h1 id="setupTitle" class="h4 mb-1">Set up your quiz</h1>
-      <p id="setupSub" class="text-secondary mb-3"></p>
-
-      <div class="q-group">
-        <div class="q-label">How many questions?</div>
-        <div id="optCount" class="q-seg" role="radiogroup" aria-label="Number of questions"></div>
-      </div>
-      <div class="q-group">
-        <div class="q-label">Timer</div>
-        <div id="optMode" class="q-seg" role="radiogroup" aria-label="Timer">
-          <button type="button" role="radio" data-v="free"><i class="bi bi-infinity"></i> No timer</button>
-          <button type="button" role="radio" data-v="item"><i class="bi bi-stopwatch"></i> Per question</button>
-          <button type="button" role="radio" data-v="total"><i class="bi bi-hourglass-split"></i> Whole exam</button>
+    <section id="setup" class="q-panel q-setup" hidden aria-labelledby="setupTitle">
+      <div class="su-hero">
+        <a class="su-back" href="./">&larr; Topics</a>
+        <div>
+          <h1 id="setupTitle" class="su-title"></h1>
+          <p id="setupSub" class="su-sub"></p>
         </div>
-        <div id="modeHelp" class="q-help"></div>
-        <div id="timeBox" class="q-time" hidden>
-          <label for="timeVal" id="timeLabel"></label>
-          <input id="timeVal" type="number" inputmode="numeric" class="form-control">
-          <span id="timeUnit"></span>
-        </div>
+        <div id="setupSum" class="su-sum" aria-live="polite"></div>
       </div>
-      <button id="startBtn" type="button" class="btn btn-accent q-start">Start quiz <i class="bi bi-arrow-right ms-1"></i></button>
-      <p id="startMsg" class="gate-msg bad" role="alert"></p>
+      <div class="su-panel">
+        <div class="su-block">
+          <div class="su-label">Questions</div>
+          <div id="optCount" class="su-tiles" role="radiogroup" aria-label="Number of questions"></div>
+        </div>
+        <div class="su-block">
+          <div class="su-label">Pace</div>
+          <div id="optMode" class="su-modes" role="radiogroup" aria-label="Pace">
+            <button type="button" role="radio" data-v="free"><b>Relaxed</b><span>No clock</span></button>
+            <button type="button" role="radio" data-v="item"><b>Sprint</b><span>Clock per question</span></button>
+            <button type="button" role="radio" data-v="total"><b>Exam</b><span>One big clock</span></button>
+          </div>
+          <div id="modeHelp" class="su-help"></div>
+          <div id="timeBox" class="su-time" hidden>
+            <div id="timeChips" class="su-chips"></div>
+            <label for="timeVal" id="timeLabel" class="visually-hidden"></label>
+            <div class="su-custom"><input id="timeVal" type="number" inputmode="numeric" class="form-control"><span id="timeUnit"></span></div>
+          </div>
+        </div>
+        <button id="startBtn" type="button" class="su-start">Start</button>
+        <p id="startMsg" class="gate-msg bad" role="alert"></p>
+      </div>
     </section>
 
     <!-- 2. exam -->
