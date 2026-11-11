@@ -5,6 +5,19 @@
   var $ = function (id) { return document.getElementById(id); };
   var LETTERS = "ABCDEF";
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+    // plain-text math -> nicer display: a^2 -> superscript, (x+1)/(x-1) and 3/4 -> stacked fraction, sqrt( -> root sign, <= >= !=
+  var PG = "\\(((?:[^()]|\\([^()]*\\))+)\\)";
+  var FR1 = new RegExp(PG + "\\/" + PG, "g"), FR2 = new RegExp(PG + "\\/(?!\\()([A-Za-z0-9.]+)(?![\\w.\\/(])", "g"), FR3 = new RegExp("(?<![\\w^.)\\/])([A-Za-z0-9.]+)\\/" + PG, "g"), FR4 = /(?<![\w^.\/])(\d{1,4})\/(\d{1,4})(?![\w.\/(])/g;
+  function fr(n, d) { return '<span class="fr"><span class="fn">' + n + '</span><span class="fd">' + d + "</span></span>"; }
+  function M(t) {
+    var h = esc(t);
+    h = h.replace(FR1, function (m, a, b) { return fr(a, b); })
+         .replace(FR2, function (m, a, b) { return fr(a, b); })
+         .replace(FR3, function (m, a, b) { return fr(a, b); })
+         .replace(FR4, function (m, a, b) { return fr(a, b); });
+    h = h.replace(/\^(\(([^()]+)\)|-?[A-Za-z0-9.]+)/g, function (m, a, b) { return "<sup>" + (b || a) + "</sup>"; });
+    return h.replace(/\bsqrt\(/g, "\u221a(").replace(/\bcbrt\(/g, "\u221b(").replace(/&lt;=/g, "\u2264").replace(/&gt;=/g, "\u2265").replace(/!=/g, "\u2260");
+  }
   function fmt(ms) { var s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); s = s % 60; return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (s < 10 ? "0" : "") + s; }
   function show(id) { ["setup", "exam", "review", "loading"].forEach(function (k) { $(k).hidden = k !== id; }); window.scrollTo(0, 0); }
   function fatal(t) { $("loading").hidden = true; ["setup", "exam", "review"].forEach(function (k) { $(k).hidden = true; }); var f = $("fatal"); f.hidden = false; f.innerHTML = esc(t) + ' <a href="./">Back to topics</a>'; }
@@ -110,9 +123,9 @@
   }
   function renderQ(dir) {
     var q = qs[cur], card = $("qCard");
-    card.innerHTML = '<div class="q-num">Question ' + (cur + 1) + '</div><h2 class="q-text">' + esc(q.q) + '</h2><div class="q-choices" role="radiogroup" aria-label="Choices">' +
+    card.innerHTML = '<div class="q-num">Question ' + (cur + 1) + '</div><h2 class="q-text">' + M(q.q) + '</h2><div class="q-choices" role="radiogroup" aria-label="Choices">' +
       perm[q.id].map(function (orig, pos) {
-        return '<button type="button" class="q-choice" role="radio" data-o="' + orig + '" aria-checked="' + (ans[q.id] === orig) + '"><span class="q-letter">' + LETTERS[pos] + '</span><span class="q-ctext">' + esc(q.c[orig]) + "</span></button>";
+        return '<button type="button" class="q-choice" role="radio" data-o="' + orig + '" aria-checked="' + (ans[q.id] === orig) + '"><span class="q-letter">' + LETTERS[pos] + '</span><span class="q-ctext">' + M(q.c[orig]) + "</span></button>";
       }).join("") + "</div>";
     paintChoices();
     $("qNow").textContent = cur + 1;
@@ -224,13 +237,13 @@
     if (!r) { card.innerHTML = '<p class="text-secondary mb-0">Nothing here.</p>'; return; }
     var label = { ok: "Correct", bad: "Wrong", skip: "Unanswered" }[r.status];
     var order = perm[r.id] || r.c.map(function (_, i) { return i; });
-    card.innerHTML = '<div class="q-num">Question ' + (r.pos + 1) + ' <span class="q-chip ' + r.status + '">' + label + '</span></div><h2 class="q-text">' + esc(r.q) + '</h2><div class="q-choices">' +
+    card.innerHTML = '<div class="q-num">Question ' + (r.pos + 1) + ' <span class="q-chip ' + r.status + '">' + label + '</span></div><h2 class="q-text">' + M(r.q) + '</h2><div class="q-choices">' +
       order.map(function (o, p) {
         var isAns = o === r.ans, isPick = o === r.pick, cls = isAns ? " is-right" : isPick ? " is-wrong" : "";
         var tag = isAns && isPick ? "Your answer · correct" : isAns ? "Correct answer" : isPick ? "Your answer" : "";
-        return '<div class="q-choice static' + cls + '"><span class="q-letter">' + LETTERS[p] + '</span><span class="q-ctext">' + esc(r.c[o]) + "</span>" + (tag ? '<span class="q-tag">' + tag + "</span>" : "") + "</div>";
+        return '<div class="q-choice static' + cls + '"><span class="q-letter">' + LETTERS[p] + '</span><span class="q-ctext">' + M(r.c[o]) + "</span>" + (tag ? '<span class="q-tag">' + tag + "</span>" : "") + "</div>";
       }).join("") + "</div>" +
-      (r.expl ? '<div class="q-expl"><i class="bi bi-lightbulb"></i><div><b>Explanation</b><p>' + esc(r.expl) + "</p></div></div>" : "");
+      (r.expl ? '<div class="q-expl"><i class="bi bi-lightbulb"></i><div><b>Explanation</b><p>' + M(r.expl) + "</p></div></div>" : "");
     $("rvPos").textContent = (rvIdx + 1) + " of " + rv.length;
     $("rvPrev").disabled = rvIdx === 0; $("rvNext").disabled = rvIdx === rv.length - 1;
     [].forEach.call($("rvDots").children, function (d, i) { d.classList.toggle("is-now", i === rvIdx); });
