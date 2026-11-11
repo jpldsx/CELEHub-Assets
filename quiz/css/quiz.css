@@ -228,3 +228,49 @@ body.setup-mode #main { max-width: none; padding: 0 !important; }
   .su-modes button { flex-direction: row; align-items: baseline; justify-content: space-between; }
 }
 @media (prefers-reduced-motion: reduce) { .su-tiles button, .su-modes button, .su-start { transition: none; } }
+
+/* ---- home: full-screen topic panels ---- */
+body.home header.mt-header { position: fixed; top: .7rem; right: .7rem; left: auto; width: auto; background: transparent; border: 0; box-shadow: none; backdrop-filter: none; z-index: 20; padding: 0; }
+body.home header.mt-header .container-fluid { padding: 0 !important; }
+body.home .as-box { display: flex; align-items: center; gap: .6rem; background: rgba(255,255,255,.2); color: #fff; border: 1px solid rgba(255,255,255,.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: .35rem .8rem; border-radius: 999px; font-size: .85rem; }
+body.home .as-box[hidden] { display: none; }
+body.home .as-box > i { display: none; }
+body.home .as-box .cm-vid { background: rgba(255,255,255,.25); color: #fff; }
+body.home .as-box .link-btn { color: #fff; opacity: .85; text-decoration: underline; }
+body.home #main { max-width: none; padding: 0 !important; }
+.hm-grid { display: flex; min-height: 100vh; min-height: 100dvh; background: #1e1b4b; }
+.hm-card {
+  position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+  padding: clamp(1.4rem, 3vw, 2.6rem); color: #fff; text-decoration: none; background: var(--g);
+  transition: flex-grow .5s cubic-bezier(.2,.8,.2,1), opacity .3s, filter .3s; animation: hm-in .7s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 110ms);
+}
+@keyframes hm-in { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+.hm-card::after { content: ""; position: absolute; width: 60vmin; height: 60vmin; right: -22vmin; bottom: -26vmin; border-radius: 50%; border: 9vmin solid rgba(255,255,255,.08); pointer-events: none; transition: transform .6s; }
+.hm-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.22)); pointer-events: none; }
+a.hm-card:hover, a.hm-card:focus-visible { flex-grow: 1.45; color: #fff; outline: none; }
+a.hm-card:hover::after, a.hm-card:focus-visible::after { transform: scale(1.18) translate(-4%, -4%); }
+a.hm-card:focus-visible { box-shadow: inset 0 0 0 5px rgba(255,255,255,.7); }
+.hm-name { position: relative; z-index: 1; margin: auto 0; font-size: clamp(3.4rem, 9vw, 8rem); font-weight: 850; letter-spacing: -.04em; line-height: .95; }
+.hm-meta { position: relative; z-index: 1; display: flex; align-items: baseline; gap: .5rem; font-size: 1.1rem; opacity: .95; min-height: 2.6rem; }
+.hm-meta b { font-size: 2.4rem; font-weight: 850; line-height: 1; }
+.hm-go { margin-left: auto; font-size: 1.8rem; transition: transform .25s; }
+a.hm-card:hover .hm-go { transform: translateX(8px); }
+.hm-card.is-empty { filter: saturate(.2) brightness(.85); cursor: default; }
+.hm-grid.leaving .hm-card:not(.is-chosen) { opacity: 0; }
+.hm-grid.leaving .hm-card.is-chosen { opacity: 0; transition: none; }
+@media (max-width: 860px) {
+  .hm-grid { flex-direction: column; }
+  .hm-card { flex-direction: row; align-items: center; justify-content: space-between; min-height: 30dvh; }
+  .hm-name { margin: 0; font-size: clamp(3rem, 17vw, 5.5rem); }
+  .hm-meta { flex-direction: column; align-items: flex-end; gap: 0; min-height: 0; }
+  .hm-meta b { font-size: 2rem; } .hm-go { display: none; }
+  a.hm-card:hover, a.hm-card:focus-visible { flex-grow: 1.15; }
+}
+@media (prefers-reduced-motion: reduce) { .hm-card, .hm-card::after, .hm-go { animation: none !important; transition: none !important; } }
+
+/* ---- setup page takes the topic's color ---- */
+@media (min-width: 861px) { .su-title { font-size: clamp(3.6rem, 11vw, 8rem); } }
+.su-tiles button[aria-checked="true"], .su-modes button[aria-checked="true"] { background: var(--t1, #4f46e5); box-shadow: 0 10px 24px color-mix(in srgb, var(--t1, #4f46e5) 40%, transparent); }
+.su-start { background: var(--t1, #4f46e5); box-shadow: 0 14px 30px color-mix(in srgb, var(--t1, #4f46e5) 40%, transparent); }
+.su-tiles button:hover, .su-modes button:hover, .su-chips button:hover { border-color: var(--t1, #4f46e5); }
+.su-chips button[aria-pressed="true"] { border-color: var(--t1, #4f46e5); color: var(--t1, #4f46e5); }
