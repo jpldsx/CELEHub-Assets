@@ -117,15 +117,19 @@ const norm = (s) => String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").tri
 // adds the parsed questions; skips ones already in that topic. Returns { added: [n...], dup: count }
 export async function addQuestions(db, topic, items) {
   const have = new Set(((await db.prepare("SELECT q FROM questions WHERE topic = ? AND hidden = 0").bind(topic).all()).results || []).map((r) => norm(r.q)));
-  const added = []; let dup = 0;
-  for (const it of items) {
-    const k = norm(it.q);
-    if (have.has(k)) { dup++; continue; }
-    have.add(k);
-    const r = await db.prepare("INSERT INTO questions (topic, q, choices, ans, expl, hidden, created) VALUES (?, ?, ?, ?, ?, 0, ?)")
-      .bind(topic, it.q, JSON.stringify(it.choices), it.ans, it.expl, Date.now()).run();
-    added.push(r.meta.last_row_id);
-  }
+  const added = []; let dup = 0; const fresh = [];
+   for (const it of items) {
+     const k = norm(it.q);
+     if (have.has(k)) { dup++; continue; }
+     have.add(k); fresh.push(it);
+   }
+   const now = Date.now();
+   for (let i = 0; i < fresh.length; i += 40) {
+     const res = await db.batch(fresh.slice(i, i + 40).map((it) =>
+       db.prepare("INSERT INTO questions (topic, q, choices, ans, expl, hidden, created) VALUES (?, ?, ?, ?, ?, 0, ?)")
+         .bind(topic, it.q, JSON.stringify(it.choices), it.ans, it.expl, now)));
+     for (const r of res) added.push(r.meta.last_row_id);
+   }
   return { added, dup };
 }
 
