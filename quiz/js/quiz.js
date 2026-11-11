@@ -19,7 +19,7 @@
     return h.replace(/\bsqrt\(/g, "\u221a(").replace(/\bcbrt\(/g, "\u221b(").replace(/&lt;=/g, "\u2264").replace(/&gt;=/g, "\u2265").replace(/!=/g, "\u2260");
   }
   function fmt(ms) { var s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); s = s % 60; return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (s < 10 ? "0" : "") + s; }
-  function show(id) { ["setup", "exam", "review", "loading"].forEach(function (k) { $(k).hidden = k !== id; }); window.scrollTo(0, 0); }
+  function show(id) { ["setup", "exam", "review", "loading"].forEach(function (k) { $(k).hidden = k !== id; }); document.body.classList.toggle("setup-mode", id === "setup"); window.scrollTo(0, 0); }
   function fatal(t) { $("loading").hidden = true; ["setup", "exam", "review"].forEach(function (k) { $(k).hidden = true; }); var f = $("fatal"); f.hidden = false; f.innerHTML = esc(t) + ' <a href="./">Back to topics</a>'; }
   function reduceMotion() { return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; }
 
@@ -46,31 +46,51 @@
   /* ---------------- setup ---------------- */
   function countOptions() { var o = [10, 25, 50].filter(function (v) { return v <= avail; }); return o.length ? o : [avail]; }
   function buildSetup() {
-    $("setupSub").innerHTML = "<b>" + esc(T.name) + "</b>" + (T.full ? " &middot; " + esc(T.full) : "") + " &middot; " + avail + " question" + (avail === 1 ? "" : "s") + " available";
+    $("setupTitle").textContent = T.name;
+    $("setupSub").textContent = (T.full ? T.full + " \u00b7 " : "") + avail + " question" + (avail === 1 ? "" : "s");
     var co = countOptions(); opt.n = co.indexOf(10) >= 0 ? 10 : co[0];
-    $("optCount").innerHTML = co.map(function (v) { return '<button type="button" role="radio" data-v="' + v + '">' + (v === avail && co.length === 1 && v < 10 ? "All " + v : v) + "</button>"; }).join("");
+    $("optCount").innerHTML = co.map(function (v) { return '<button type="button" role="radio" data-v="' + v + '">' + v + "</button>"; }).join("");
     $("optCount").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.n = +b.getAttribute("data-v"); paintSetup(); } });
     $("optMode").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.mode = b.getAttribute("data-v"); paintSetup(); } });
+    $("timeChips").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      var v = +b.getAttribute("data-v"); if (opt.mode === "item") opt.secs = v; else { opt.mins = v; minsTouched = true; }
+      paintSetup();
+    });
     $("timeVal").addEventListener("input", function () {
       var v = parseInt(this.value, 10) || 0;
       if (opt.mode === "item") opt.secs = v; else { opt.mins = v; minsTouched = true; }
+      paintSetup(true);
     });
     $("startBtn").addEventListener("click", start);
     paintSetup();
   }
   var HELP = {
     free: "Take your time. Go back and forth freely.",
-    item: "Each question has its own countdown. When it runs out you move on automatically, and you can't go back.",
-    total: "One countdown for the whole exam. Go back and forth freely. It submits by itself when time is up."
+    item: "A clock on every question. Time's up, you move on. No going back.",
+    total: "One clock for everything. It submits itself at zero."
   };
-  function paintSetup() {
+  var CHIPS = { item: [15, 30, 45, 60, 90, 120], total: [10, 20, 30, 45, 60, 90, 120] };
+  function paintSetup(typing) {
     [].forEach.call($("optCount").children, function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-v") === opt.n)); });
     [].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.mode)); });
     $("modeHelp").textContent = HELP[opt.mode];
     var tb = $("timeBox"), tv = $("timeVal");
     tb.hidden = opt.mode === "free";
-    if (opt.mode === "item") { $("timeLabel").textContent = "Seconds per question"; $("timeUnit").textContent = "seconds"; tv.min = 5; tv.max = 600; tv.value = opt.secs; }
-    if (opt.mode === "total") { if (!minsTouched) opt.mins = Math.max(5, opt.n); $("timeLabel").textContent = "Time for the whole exam"; $("timeUnit").textContent = "minutes"; tv.min = 1; tv.max = 360; tv.value = opt.mins; }
+    if (opt.mode === "total" && !minsTouched) opt.mins = Math.max(5, opt.n);
+    if (opt.mode !== "free") {
+      var item = opt.mode === "item", cur = item ? opt.secs : opt.mins;
+      $("timeLabel").textContent = item ? "Seconds per question" : "Minutes for the whole exam";
+      $("timeUnit").textContent = item ? "sec" : "min";
+      tv.min = item ? 5 : 1; tv.max = item ? 600 : 360;
+      if (!typing) tv.value = cur;
+      $("timeChips").innerHTML = CHIPS[opt.mode].map(function (v) { return '<button type="button" data-v="' + v + '" aria-pressed="' + (v === cur) + '">' + v + (item ? "s" : "m") + "</button>"; }).join("");
+    }
+    var n = opt.n, sum;
+    if (opt.mode === "item") sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>" + opt.secs + " sec each";
+    else if (opt.mode === "total") sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>" + opt.mins + " min total";
+    else sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>your pace";
+    $("setupSum").innerHTML = sum;
   }
   function start() {
     var msg = $("startMsg"); msg.textContent = "";
