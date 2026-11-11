@@ -63,8 +63,11 @@
         <div class="q-bar" aria-hidden="true"><span id="qBar"></span></div>
         <div id="qTimer" class="q-timer" role="timer" aria-live="off"><i class="bi bi-clock"></i> <span id="qTimerText">0:00</span></div>
       </div>
-      <div id="qStage" class="q-stage" aria-live="polite">
-        <article id="qCard" class="q-card"></article>
+      <div class="q-board">
+        <div class="q-flipwrap" aria-live="polite">
+          <article id="qCard" class="q-card"><div id="qNum" class="q-num"></div><h2 id="qText" class="q-text"></h2></article>
+        </div>
+        <div id="qChoices" class="q-choices" role="radiogroup" aria-label="Choices"></div>
       </div>
       <div class="q-nav">
         <button id="btnPrev" type="button" class="btn q-btn"><i class="bi bi-arrow-left"></i> Back</button>
