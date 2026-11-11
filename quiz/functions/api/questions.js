@@ -7,7 +7,7 @@ export async function onRequestGet({ request, env }) {
   const u = new URL(request.url);
   const topic = (u.searchParams.get("topic") || "").toLowerCase();
   if (!TOPICS.includes(topic)) return fail(400, "Unknown topic.");
-  const n = [10, 25, 50].includes(+u.searchParams.get("n")) ? +u.searchParams.get("n") : 10;
+  const n = [25, 50, 75].includes(+u.searchParams.get("n")) ? +u.searchParams.get("n") : 25;
   await init(env.DB);
   const rows = (await env.DB.prepare("SELECT n, q, choices FROM questions WHERE topic = ? AND hidden = 0 ORDER BY RANDOM() LIMIT ?")
     .bind(topic, Math.min(n, LIMITS.perExam)).all()).results || [];
