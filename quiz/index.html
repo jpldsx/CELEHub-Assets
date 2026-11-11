@@ -43,12 +43,12 @@
 
       <form id="gateForm" novalidate hidden>
         <div class="gate-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></div>
-        <h2 id="gateTitle" class="gate-title">Quick survey</h2>
-        <p class="gate-sub">Tell us a little about yourself before you start. Please use your <strong>real full name</strong> and be 18 or older. It only takes a few seconds. <strong>Your name is never shown</strong> &mdash; you appear only as an anonymous visitor ID.</p>
+        <h2 id="gateTitle" class="gate-title">Quick Survey</h2>
+        <p class="gate-sub">Tell us a little about yourself before you start. It only takes a few seconds.</p>
 
         <div class="mb-2">
-          <label for="gName" class="gate-label">Full name</label>
-          <input id="gName" name="fullName" type="text" class="form-control" maxlength="80" required autocomplete="name" placeholder="First name and last name">
+          <label for="gName" class="gate-label">Full Name</label>
+          <input id="gName" name="fullName" type="text" class="form-control" maxlength="80" required autocomplete="name" placeholder="e.g. Juan Dela Cruz">
         </div>
         <div class="row g-2 mb-2">
           <div class="col-4">
@@ -57,22 +57,22 @@
           </div>
           <div class="col-8">
             <label for="gSchool" class="gate-label">School</label>
-            <input id="gSchool" name="school" type="text" class="form-control" maxlength="100" required autocomplete="off" list="schoolList" placeholder="College / university (full name)">
+            <input id="gSchool" name="school" type="text" class="form-control" maxlength="100" required autocomplete="off" list="schoolList" placeholder="e.g. UP Diliman">
           <datalist id="schoolList"></datalist>
           </div>
         </div>
         <div class="mb-3">
-          <label for="gCenter" class="gate-label">Review center</label>
+          <label for="gCenter" class="gate-label">Review Center</label>
           <input id="gCenter" name="reviewCenter" type="text" class="form-control" maxlength="100" required placeholder="Type &ldquo;None&rdquo; if you don&rsquo;t have one">
         </div>
 
         <!-- honeypot -->
         <input type="text" name="website" class="d-none" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-        <p class="gate-why">Why we ask: to confirm you are an adult and to learn who uses CELEHub (students, schools, review centers). Your name is seen only by the site owner. Only a random Visitor ID identifies you. We never ask for an email or payment details.</p>
+        <p class="gate-why">Why we ask: to confirm you are an adult and to learn who uses CELEHub Quiz (students, schools, review centers). Your name is seen only by the site owner. Only a random Visitor ID identifies you. We never ask for an email or payment details.</p>
         <label class="gate-consent">
           <input type="checkbox" name="consent" required>
-          <span>I am <strong>18 or older</strong> and I agree that CELEHub may collect and use these details as explained in the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>.</span>
+          <span>I am <strong>18 or older</strong> and I agree that CELEHub Quiz may collect and use these details as explained in the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>.</span>
         </label>
 
         <div id="gateMsg" class="gate-msg" role="alert"></div>
