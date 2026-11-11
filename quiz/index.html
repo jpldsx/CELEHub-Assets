@@ -12,33 +12,19 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/quiz.css">
 </head>
-<body>
+<body class="home">
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="mt-header sticky-top">
-    <div class="container-fluid px-3 px-lg-4 d-flex align-items-center gap-3">
-      <a class="mt-brand text-decoration-none" href="./" aria-label="CELEHub Quiz home">
-        <span class="mt-logo"><i class="bi bi-mortarboard-fill"></i></span>
-        <span class="mt-brand-text">CELE<strong>Hub</strong> Quiz</span>
-      </a>
-      <div class="as-box ms-auto" id="asBox" hidden>
-        <i class="bi bi-person-circle"></i>
-        <span><b id="asName"></b> <span id="asId" class="cm-vid"></span></span>
-        <button type="button" id="notYou" class="link-btn">Not you?</button>
-      </div>
+  <header class="mt-header home-top">
+    <div class="as-box" id="asBox" hidden>
+      <span><b id="asName"></b> <span id="asId" class="cm-vid"></span></span>
+      <button type="button" id="notYou" class="link-btn">Not you?</button>
     </div>
   </header>
 
-  <main id="main" tabindex="-1" class="container-fluid px-3 px-lg-4 py-3 py-lg-4 quiz-wrap">
-    <div class="hero mb-3 mb-lg-4">
-      <div>
-        <h1 class="h4 mb-1">Practice quiz</h1>
-        <p class="mb-0 hero-sub">Pick a topic. Random questions every time. Answers and explanations after you submit.</p>
-      </div>
-    </div>
-    <div id="topicGrid" class="topic-grid" aria-live="polite"></div>
+  <main id="main" tabindex="-1">
+    <div id="topicGrid" class="hm-grid" aria-live="polite"></div>
     <p id="topicErr" class="gate-msg bad" hidden></p>
-    <p class="quiz-foot"><a id="celehubLink" href="https://celehub.pages.dev/">CELEHub &middot; solved problems</a></p>
   </main>
 
   <!-- ============ QUICK SURVEY (shown before first use) ============ -->
@@ -116,8 +102,8 @@
 
   <script defer src="vendor/bootstrap.bundle.min.js"></script>
   <script defer src="js/config.js"></script>
-  <script defer src="js/checks.js"></script>
   <script defer src="js/home.js"></script>
+  <script defer src="js/look.js"></script>
   <script defer src="js/gate.js"></script>
   <noscript><div class="gate" style="display:grid"><div class="gate-card">Please enable JavaScript to use CELEHub Quiz.</div></div></noscript>
 </body>
