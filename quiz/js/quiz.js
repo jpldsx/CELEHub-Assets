@@ -121,13 +121,22 @@
       if (i === cur) d.setAttribute("aria-current", "step"); else d.removeAttribute("aria-current");
     });
   }
+    var flipT = null, swapping = false;
+  function fillQ(q) {
+    var len = q.q.length, longest = Math.max.apply(null, q.c.map(function (c) { return c.length; }));
+    $("qNum").textContent = "Question " + (cur + 1);
+    $("qText").innerHTML = M(q.q);
+    $("qCard").setAttribute("data-size", len <= 70 ? "1" : len <= 140 ? "2" : len <= 260 ? "3" : "4");
+    var box = $("qChoices");
+    box.className = "q-choices" + (longest > 46 || q.c.length > 4 ? " one" : "");
+    box.setAttribute("data-size", longest <= 24 ? "1" : longest <= 80 ? "2" : "3");
+    box.innerHTML = perm[q.id].map(function (orig, pos) {
+      return '<button type="button" class="q-choice" style="--i:' + pos + '" role="radio" data-o="' + orig + '" aria-checked="' + (ans[q.id] === orig) + '"><span class="q-letter">' + LETTERS[pos] + '</span><span class="q-ctext">' + M(q.c[orig]) + "</span></button>";
+    }).join("");
+    paintChoices();
+  }
   function renderQ(dir) {
     var q = qs[cur], card = $("qCard");
-    card.innerHTML = '<div class="q-num">Question ' + (cur + 1) + '</div><h2 class="q-text">' + M(q.q) + '</h2><div class="q-choices" role="radiogroup" aria-label="Choices">' +
-      perm[q.id].map(function (orig, pos) {
-        return '<button type="button" class="q-choice" role="radio" data-o="' + orig + '" aria-checked="' + (ans[q.id] === orig) + '"><span class="q-letter">' + LETTERS[pos] + '</span><span class="q-ctext">' + M(q.c[orig]) + "</span></button>";
-      }).join("") + "</div>";
-    paintChoices();
     $("qNow").textContent = cur + 1;
     $("qBar").style.width = ((cur + 1) / qs.length * 100) + "%";
     var last = cur === qs.length - 1;
@@ -135,17 +144,27 @@
     $("btnNext").hidden = last; $("btnSubmit").hidden = !last;
     if (opt.mode === "item") itemEnd = Date.now() + opt.secs * 1000;
     paintDots();
-    if (dir && !reduceMotion()) { card.classList.remove("in-r", "in-l"); void card.offsetWidth; card.classList.add(dir > 0 ? "in-r" : "in-l"); }
+    clearTimeout(flipT);
+    if (!dir || reduceMotion()) { swapping = false; card.className = "q-card"; fillQ(q); }
+    else {
+      swapping = true;
+      card.className = "q-card flip-out" + (dir < 0 ? " back" : "");
+      flipT = setTimeout(function () {
+        fillQ(qs[cur]); swapping = false;
+        card.className = "q-card flip-in" + (dir < 0 ? " back" : "");
+      }, 170);
+    }
     onTick();
   }
   function paintChoices() {
     var q = qs[cur];
-    [].forEach.call($("qCard").querySelectorAll(".q-choice"), function (b) {
+    [].forEach.call($("qChoices").querySelectorAll(".q-choice"), function (b) {
       var on = ans[q.id] === +b.getAttribute("data-o");
       b.classList.toggle("is-on", on); b.setAttribute("aria-checked", String(on));
     });
   }
   function pick(orig) {
+    if (swapping) return;
     var q = qs[cur];
     ans[q.id] = ans[q.id] === orig ? undefined : orig;
     if (ans[q.id] === undefined) delete ans[q.id];
@@ -156,7 +175,7 @@
     if (opt.mode === "item" && i < cur) return;
     var dir = i > cur ? 1 : -1; cur = i; renderQ(dir);
   }
-  $("qCard").addEventListener("click", function (e) { var b = e.target.closest(".q-choice"); if (b && state === "exam" && !grading) pick(+b.getAttribute("data-o")); });
+  $("qChoices").addEventListener("click", function (e) { var b = e.target.closest(".q-choice"); if (b && state === "exam" && !grading) pick(+b.getAttribute("data-o")); });
   $("btnNext").addEventListener("click", function () { go(cur + 1); });
   $("btnPrev").addEventListener("click", function () { go(cur - 1); });
   $("navDots").addEventListener("click", function (e) { var d = e.target.closest("button.q-dot"); if (d && opt.mode !== "item") go(+d.getAttribute("data-i")); });
