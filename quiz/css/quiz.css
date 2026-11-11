@@ -274,3 +274,6 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 .su-start { background: var(--t1, #4f46e5); box-shadow: 0 14px 30px color-mix(in srgb, var(--t1, #4f46e5) 40%, transparent); }
 .su-tiles button:hover, .su-modes button:hover, .su-chips button:hover { border-color: var(--t1, #4f46e5); }
 .su-chips button[aria-pressed="true"] { border-color: var(--t1, #4f46e5); color: var(--t1, #4f46e5); }
+
+/* hide the visitor-ID pill on the home page */
+#asBox { display: none !important; }
