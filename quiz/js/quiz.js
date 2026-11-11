@@ -44,13 +44,13 @@
   }).catch(function () { fatal("Couldn't load. Check your connection and refresh."); });
 
   /* ---------------- setup ---------------- */
-  function countOptions() { var o = [10, 25, 50].filter(function (v) { return v <= avail; }); return o.length ? o : [avail]; }
+  function countOptions() { var o = [25, 50, 75].filter(function (v) { return v <= avail; }); return o.length ? o : [avail]; }
   function buildSetup() {
     $("setupTitle").textContent = T.name;
     $("setup").style.setProperty("--t1", T.tint || "#4f46e5");
     if (window.QuizLook) document.querySelector(".su-hero").style.background = QuizLook.grad(T.tint || "#4f46e5");
     $("setupSub").textContent = (T.full ? T.full + " \u00b7 " : "") + avail + " question" + (avail === 1 ? "" : "s");
-    var co = countOptions(); opt.n = co.indexOf(10) >= 0 ? 10 : co[0];
+    var co = countOptions(); opt.n = co[0];
     $("optCount").innerHTML = co.map(function (v) { return '<button type="button" role="radio" data-v="' + v + '">' + v + "</button>"; }).join("");
     $("optCount").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.n = +b.getAttribute("data-v"); paintSetup(); } });
     $("optMode").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.mode = b.getAttribute("data-v"); paintSetup(); } });
