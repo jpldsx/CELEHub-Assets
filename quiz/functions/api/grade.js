@@ -9,7 +9,7 @@ export async function onRequestPost({ request, env }) {
   const ids = answers ? Object.keys(answers).map(Number).filter((x) => Number.isInteger(x) && x > 0) : [];
   if (!ids.length || ids.length > LIMITS.perExam) return fail(400, "Bad request.");
   await init(env.DB);
-  const rows = (await env.DB.prepare(`SELECT n, q, choices, ans, expl FROM questions WHERE n IN (${ids.map(() => "?").join(",")})`).bind(...ids).all()).results || [];
+  const rows = (await env.DB.prepare(`SELECT n, q, choices, ans, expl, sub FROM questions WHERE n IN (${ids.map(() => "?").join(",")})`).bind(...ids).all()).results || [];
   const byId = new Map(rows.map((r) => [r.n, r]));
   let score = 0;
   const results = ids.map((id) => {
@@ -19,7 +19,7 @@ export async function onRequestPost({ request, env }) {
     const pick = Number.isInteger(p) ? p : null;
     const correct = pick === r.ans;
     if (correct) score++;
-    return { id, q: r.q, c: JSON.parse(r.choices), ans: r.ans, expl: r.expl, pick, correct };
+    return { id, q: r.q, c: JSON.parse(r.choices), ans: r.ans, expl: r.expl, sub: r.sub || "", pick, correct };
   }).filter(Boolean);
   return json({ ok: true, score, total: results.length, results });
 }
