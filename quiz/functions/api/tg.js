@@ -173,6 +173,12 @@ async function onText(env, chat, text) {
     await db.prepare("UPDATE questions SET q = ?, choices = ?, ans = ?, expl = ? WHERE n = ?").bind(it.q, JSON.stringify(it.choices), it.ans, it.expl, old.n).run();
     return say("✅ Replaced.\n\n" + show(await db.prepare("SELECT * FROM questions WHERE n = ?").bind(old.n).first()));
   }
+  if (cmd === "purge") {
+    const p = arg.trim().toLowerCase().split(/\s+/);
+    if (!TOPICS.includes(p[0]) || p[1] !== "yes") return say("Use <code>/purge hpge yes</code> to hide every question in that topic before re-importing a new bank.");
+    const r = await db.prepare("UPDATE questions SET hidden = 1 WHERE topic = ? AND hidden = 0").bind(p[0]).run();
+    return say("🧹 Hid " + r.meta.changes + " questions in " + p[0].toUpperCase() + ". Now send the new file with the caption /" + p[0] + ".");
+  }
   if (cmd === "del") {
     const ns = [...arg.matchAll(/\d+/g)].map((x) => +x[0]).slice(0, 50);
     if (!ns.length) return say("Use <code>/del 41</code> (or several: <code>/del 41 42 43</code>)");
