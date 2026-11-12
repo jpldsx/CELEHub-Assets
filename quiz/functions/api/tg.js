@@ -111,9 +111,9 @@ async function onText(env, chat, text) {
     if (!body) return say(`Send the questions under the command, like:\n<pre>/${topic}\n1. Question text?\nA. First\nB. Second\nC. Third\nD. Fourth\nAnswer: B\nExplanation: why (optional)</pre>`);
     const { items, errors } = parseQuestions(body);
     if (!items.length && !errors.length) return say("I could not find a question in that. Send /help to see the format.");
-    const { added, dup } = await addQuestions(db, topic, items);
+    const { added, dup, updated } = await addQuestions(db, topic, items);
     let out = `✅ <b>${added.length}</b> added to ${TOPIC_NAME[topic]}` + (added.length ? ` (#${added[0]}${added.length > 1 ? "–#" + added[added.length - 1] : ""})` : "") +
-      (dup ? `\n↩️ ${dup} already there, skipped.` : "") +
+      (dup ? `\n↩️ ${dup} already there, skipped.` + (updated ? `\n🏷 ${updated} subtopic tags updated.` : "") : "") +
       (items.some((i) => !i.expl) && added.length ? `\n💡 ${items.filter((i) => !i.expl).length} without an explanation (add later with /explain N …).` : "");
     if (errors.length) out += `\n\n⚠️ <b>${errors.length} not added:</b>\n` + errors.slice(0, 15).map((e) => "• " + esc(e)).join("\n") + (errors.length > 15 ? `\n…and ${errors.length - 15} more.` : "") + "\nFix those and send only them again.";
     return sayLong(out);
