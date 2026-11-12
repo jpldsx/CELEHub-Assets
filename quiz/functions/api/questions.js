@@ -8,9 +8,10 @@ export async function onRequestGet({ request, env }) {
   const topic = (u.searchParams.get("topic") || "").toLowerCase();
   if (!TOPICS.includes(topic)) return fail(400, "Unknown topic.");
   const n = [25, 50, 75].includes(+u.searchParams.get("n")) ? +u.searchParams.get("n") : 25;
+  const sub = (u.searchParams.get("sub") || "").slice(0, 60);
   await init(env.DB);
-  const rows = (await env.DB.prepare("SELECT n, q, choices FROM questions WHERE topic = ? AND hidden = 0 ORDER BY RANDOM() LIMIT ?")
-    .bind(topic, Math.min(n, LIMITS.perExam)).all()).results || [];
+  const rows = (await env.DB.prepare("SELECT n, q, choices, sub FROM questions WHERE topic = ? AND hidden = 0" + (sub ? " AND sub = ?" : "") + " ORDER BY RANDOM() LIMIT ?")
+    .bind(...(sub ? [topic, sub] : [topic]), Math.min(n, LIMITS.perExam)).all()).results || [];
   if (!rows.length) return fail(404, "No questions in this topic yet.");
-  return json({ ok: true, topic, questions: rows.map((r) => ({ id: r.n, q: r.q, c: JSON.parse(r.choices) })) });
+  return json({ ok: true, topic, questions: rows.map((r) => ({ id: r.n, q: r.q, c: JSON.parse(r.choices), sub: r.sub || "" })) });
 }
