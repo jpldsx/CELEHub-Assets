@@ -23,6 +23,6 @@ export async function onRequestPost({ request, env }) {
 
   await init(env.DB);
   const { items, errors } = parseQuestions(text);
-  const { added, dup } = await addQuestions(env.DB, topic, items);
-  return json({ ok: true, topic: TOPIC_NAME[topic], added: added.length, duplicates: dup, errors: errors.length, first: added[0] || null, last: added.at(-1) || null });
+  const { added, dup, updated } = await addQuestions(env.DB, topic, items);
+  return json({ ok: true, topic: TOPIC_NAME[topic], added: added.length, duplicates: dup, updated, errors: errors.length, first: added[0] || null, last: added.at(-1) || null });
 }
