@@ -45,9 +45,8 @@
         <div class="su-label">What to practice</div>
         <div id="optScope" class="su-modes two" role="radiogroup" aria-label="Scope">
             <button type="button" role="radio" data-v="all"><b>Whole bank</b><span>Random mix of everything</span></button>
-            <button type="button" role="radio" data-v="pick"><b>Pick subtopics</b><span>Choose one or more</span></button>
+            <button type="button" role="radio" data-v="pick"><b>Pick subtopics</b><span id="pickSum">Choose one or more</span></button>
         </div>
-        <div id="optSub" class="su-subs" role="group" aria-label="Subtopics" hidden></div>
        </div>
         <div class="su-block">
           <div class="su-label">Questions</div>
@@ -117,6 +116,15 @@
       <div id="rvDots" class="q-dots" role="group" aria-label="Review navigator"></div>
     </section>
 
+    <!-- subtopic picker -->
+    <div id="subModal" class="q-modal" hidden role="dialog" aria-modal="true" aria-labelledby="subTitle">
+      <div class="q-modal-card sub-card">
+        <h2 id="subTitle" class="h5">Choose your subtopics</h2>
+        <div id="optSub" class="su-subs" role="group" aria-label="Subtopics"></div>
+        <div class="sub-foot"><span id="subSum"></span><button id="subDone" type="button" class="btn btn-accent">Done</button></div>
+      </div>
+    </div>
+    
     <!-- submit confirmation -->
     <div id="confirm" class="q-modal" hidden role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <div class="q-modal-card">
