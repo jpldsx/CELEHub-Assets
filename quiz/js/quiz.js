@@ -97,7 +97,7 @@
     item: "A clock on every question. Time's up, you move on. No going back.",
     total: "One clock for everything. It submits itself at zero."
   };
-  var CHIPS = { item: [15, 30, 45, 60, 90, 120], total: [30, 45, 60, 90, 120] };
+  var CHIPS = { item: [15, 30, 45, 60, 90], total: [30, 45, 60, 90, 120] };
   function paintSetup(typing) {
     $("startBtn").disabled = !availNow();
     $("subSum").textContent = opt.picks.length ? opt.picks.length + " selected \u00b7 " + availNow() + " questions" : "Nothing selected yet";
