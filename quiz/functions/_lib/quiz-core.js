@@ -22,7 +22,8 @@ export async function init(db) {
     ),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions (topic, hidden)"),
   ]);
-  ready = true;
+    try { await db.prepare("ALTER TABLE questions ADD COLUMN sub TEXT NOT NULL DEFAULT ''").run(); } catch { /* already there */ }
+    ready = true;
 }
 
 /* ---------------- the visitor session (the same signed cookie the survey sets) ---------------- */
@@ -62,19 +63,21 @@ export async function readSession(request, env) {
 const Q_START = /^\s*(?:q(?:uestion)?\s*\d*\s*[:.)\-]|\d{1,4}\s*[.)])\s*(.*)$/i;
 const CHOICE = /^\s*\(?([A-Fa-f])\s*[.):\-]\s+(.*)$/;
 const KEY = /^\s*(?:ans(?:wer)?|key|correct(?:\s+answer)?)\s*[:=\-]?\s*\(?([A-Fa-f])\)?\s*(?:[.)\-:].*)?$/i;
+const SUB = /^\s*(?:sub(?:topic)?|category)\s*[:=]\s*(.+)$/i;
 const EXPL = /^\s*(?:expl(?:anation)?|solution|sol|rationale|why|reason)\s*[:=\-]\s*(.*)$/i;
 
 export function parseQuestions(text) {
   const lines = String(text || "").replace(/\r/g, "").split("\n");
   const blocks = [];
   let cur = null, last = "q";
-  const start = (first) => { cur = { q: first || "", choices: [], letters: [], key: "", expl: "", sawChoice: false }; blocks.push(cur); last = "q"; };
+  const start = (first) => { cur = { q: first || "", choices: [], letters: [], key: "", expl: "", sub: "", sawChoice: false }; blocks.push(cur); last = "q"; };
   const complete = (b) => b && b.choices.length >= 2 && b.key;
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) { if (cur && complete(cur)) cur = null; continue; }               // a blank line after a finished question ends it
     let m;
     if ((m = line.match(KEY)) && cur && cur.choices.length) { cur.key = m[1].toUpperCase(); last = "key"; continue; }
+    if ((m = line.match(SUB)) && cur && cur.choices.length) { cur.sub = m[1]; last = "sub"; continue; }
     if ((m = line.match(EXPL)) && cur) { cur.expl = m[1]; last = "expl"; continue; }
     if ((m = line.match(CHOICE)) && cur && (cur.q || cur.choices.length)) {
       const L = m[1].toUpperCase();
@@ -108,30 +111,31 @@ export function parseQuestions(text) {
     if (new Set(choices.map((c) => c.toLowerCase())).size !== choices.length) return errors.push(`${tag} ("${q.slice(0, 40)}…"): two choices are identical.`);
     const expl = clean(b.expl, LIMITS.explain + 1);
     if (expl.length > LIMITS.explain) return errors.push(`${tag}: the explanation is too long (max ${LIMITS.explain} characters).`);
-    items.push({ q, choices, ans, expl });
+    items.push({ q, choices, ans, expl, sub: clean(b.sub, 60) });
   });
   return { items, errors };
 }
 
 const norm = (s) => String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-// adds the parsed questions; skips ones already in that topic. Returns { added: [n...], dup: count }
-export async function addQuestions(db, topic, items) {
-  const have = new Set(((await db.prepare("SELECT q FROM questions WHERE topic = ? AND hidden = 0").bind(topic).all()).results || []).map((r) => norm(r.q)));
-  const added = []; let dup = 0; const fresh = [];
-   for (const it of items) {
-     const k = norm(it.q);
-     if (have.has(k)) { dup++; continue; }
-     have.add(k); fresh.push(it);
+   // adds the parsed questions; skips ones already in that topic (but fills in a missing/changed subtopic). Returns { added: [n...], dup, updated }
+   export async function addQuestions(db, topic, items) {
+     const have = new Map(((await db.prepare("SELECT n, q, sub FROM questions WHERE topic = ? AND hidden = 0").bind(topic).all()).results || []).map((r) => [norm(r.q), r]));
+     const added = []; let dup = 0; const fresh = [], upd = [];
+     for (const it of items) {
+       const k = norm(it.q), ex = have.get(k);
+       if (ex) { dup++; if (it.sub && ex.n && ex.sub !== it.sub) { upd.push(db.prepare("UPDATE questions SET sub = ? WHERE n = ?").bind(it.sub, ex.n)); ex.sub = it.sub; } continue; }
+       have.set(k, { n: 0, sub: it.sub }); fresh.push(it);
+     }
+     const now = Date.now();
+     for (let i = 0; i < fresh.length; i += 40) {
+       const res = await db.batch(fresh.slice(i, i + 40).map((it) =>
+         db.prepare("INSERT INTO questions (topic, q, choices, ans, expl, hidden, created, sub) VALUES (?, ?, ?, ?, ?, 0, ?, ?)")
+           .bind(topic, it.q, JSON.stringify(it.choices), it.ans, it.expl, now, it.sub || "")));
+       for (const r of res) added.push(r.meta.last_row_id);
+     }
+     for (let i = 0; i < upd.length; i += 40) await db.batch(upd.slice(i, i + 40));
+     return { added, dup, updated: upd.length };
    }
-   const now = Date.now();
-   for (let i = 0; i < fresh.length; i += 40) {
-     const res = await db.batch(fresh.slice(i, i + 40).map((it) =>
-       db.prepare("INSERT INTO questions (topic, q, choices, ans, expl, hidden, created) VALUES (?, ?, ?, ?, ?, 0, ?)")
-         .bind(topic, it.q, JSON.stringify(it.choices), it.ans, it.expl, now)));
-     for (const r of res) added.push(r.meta.last_row_id);
-   }
-  return { added, dup };
-}
 
 export async function tgSend(env, chatId, text, extra = {}) {
   try {
