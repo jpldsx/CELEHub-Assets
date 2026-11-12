@@ -284,3 +284,7 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 .su-subs button:hover { border-color: var(--accent); }
 .su-subs button[aria-checked="true"] { background: linear-gradient(135deg, #4f46e5, #7c3aed); border-color: transparent; color: #fff; }
 .q-sub { text-transform: none; letter-spacing: 0; font-weight: 700; color: var(--muted); }
+
+@media (min-width: 700px) { .su-modes.two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.su-subs { margin-top: .8rem; }
+.su-hint { grid-column: 1 / -1; margin: 0; color: var(--muted); font-weight: 600; }
