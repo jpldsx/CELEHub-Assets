@@ -277,3 +277,10 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 
 /* hide the visitor-ID pill on the home page */
 #asBox { display: none !important; }
+
+.su-subs { display: flex; flex-wrap: wrap; gap: .5rem; }
+.su-subs button { border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: .5rem .95rem; font-weight: 700; font-size: .95rem; }
+.su-subs button small { opacity: .6; font-weight: 600; }
+.su-subs button:hover { border-color: var(--accent); }
+.su-subs button[aria-checked="true"] { background: linear-gradient(135deg, #4f46e5, #7c3aed); border-color: transparent; color: #fff; }
+.q-sub { text-transform: none; letter-spacing: 0; font-weight: 700; color: var(--muted); }
