@@ -54,7 +54,7 @@
   }
   function paintSubs() {
     var names = Object.keys(subs); $("subBlock").hidden = names.length < 2; if (names.length < 2) return;
-    $("optSub").innerHTML = '<button type="button" role="checkbox" data-v="*">Select all</button>' + names.map(function (n) { return '<button type="button" role="checkbox" data-v="' + esc(n) + '">' + esc(n) + " <small>" + subs[n] + "</small></button>"; }).join("");
+    $("optSub").innerHTML = names.map(function (n) { return '<button type="button" role="checkbox" data-v="' + esc(n) + '">' + esc(n) + " <small>" + subs[n] + "</small></button>"; }).join("");
   }
   function buildSetup() {
     $("setupTitle").textContent = T.name;
@@ -73,8 +73,8 @@
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("subModal").hidden) closeSubs(); });
     $("optSub").addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
-      var v = b.getAttribute("data-v"), all = Object.keys(subs), i = opt.picks.indexOf(v);
-    if (v === "*") opt.picks = opt.picks.length === all.length ? [] : all.slice(); else if (i >= 0) opt.picks.splice(i, 1); else opt.picks.push(v);
+      var v = b.getAttribute("data-v"), i = opt.picks.indexOf(v);
+      if (i >= 0) opt.picks.splice(i, 1); else opt.picks.push(v);
     paintCounts(); paintSetup();
     });
     $("optCount").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.n = +b.getAttribute("data-v"); paintSetup(); } });
@@ -103,7 +103,7 @@
     $("subSum").textContent = opt.picks.length ? opt.picks.length + " selected \u00b7 " + availNow() + " questions" : "Nothing selected yet";
     $("pickSum").textContent = opt.scope === "pick" && opt.picks.length ? opt.picks.length + " subtopic" + (opt.picks.length > 1 ? "s" : "") + " \u00b7 " + availNow() + " questions" : "Choose one or more";
     [].forEach.call($("optScope").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.scope)); });
-    [].forEach.call($("optSub").children, function (b) { var v = b.getAttribute("data-v"); b.setAttribute("aria-checked", String(v === "*" ? opt.picks.length === Object.keys(subs).length : opt.picks.indexOf(v) >= 0)); });
+    [].forEach.call($("optSub").children, function (b) { var v = b.getAttribute("data-v"); b.setAttribute("aria-checked", String(opt.picks.indexOf(v) >= 0)); });
     [].forEach.call($("optCount").children, function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-v") === opt.n)); });
     [].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.mode)); });
     $("modeHelp").textContent = HELP[opt.mode];
