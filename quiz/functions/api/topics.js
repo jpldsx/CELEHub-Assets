@@ -8,5 +8,9 @@ export async function onRequestGet({ env }) {
   const topics = {};
   for (const t of TOPICS) topics[t] = 0;
   for (const r of rows) if (r.topic in topics) topics[r.topic] = r.c;
-  return json({ ok: true, topics }, 200, { "Cache-Control": "public, max-age=30" });
+  const sr = (await env.DB.prepare("SELECT topic, sub, COUNT(*) AS c FROM questions WHERE hidden = 0 AND sub != '' GROUP BY topic, sub ORDER BY sub").all()).results || [];
+  const subs = {};
+  for (const t of TOPICS) subs[t] = {};
+  for (const r of sr) if (r.topic in subs) subs[r.topic][r.sub] = r.c;
+  return json({ ok: true, topics, subs }, 200, { "Cache-Control": "public, max-age=30" });
 }
