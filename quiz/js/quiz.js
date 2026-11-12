@@ -62,7 +62,15 @@
     if (window.QuizLook) document.querySelector(".su-hero").style.background = QuizLook.grad(T.tint || "#4f46e5");
     $("setupSub").textContent = (T.full ? T.full + " \u00b7 " : "") + avail + " question" + (avail === 1 ? "" : "s");
     paintSubs(); paintCounts();
-    $("optScope").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.scope = b.getAttribute("data-v"); paintCounts(); paintSetup(); } });
+    $("optScope").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      opt.scope = b.getAttribute("data-v");
+      if (opt.scope === "pick") { $("subModal").hidden = false; paintCounts(); paintSetup(); } else { paintCounts(); paintSetup(); }
+    });
+    function closeSubs() { $("subModal").hidden = true; if (!opt.picks.length) opt.scope = "all"; paintCounts(); paintSetup(); }
+    $("subDone").addEventListener("click", closeSubs);
+    $("subModal").addEventListener("click", function (e) { if (e.target === $("subModal")) closeSubs(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("subModal").hidden) closeSubs(); });
     $("optSub").addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       var v = b.getAttribute("data-v"), all = Object.keys(subs), i = opt.picks.indexOf(v);
@@ -91,7 +99,9 @@
   };
   var CHIPS = { item: [15, 30, 45, 60, 90, 120], total: [30, 45, 60, 90, 120] };
   function paintSetup(typing) {
-    $("optSub").hidden = opt.scope !== "pick"; $("startBtn").disabled = !availNow();
+    $("startBtn").disabled = !availNow();
+    $("subSum").textContent = opt.picks.length ? opt.picks.length + " selected \u00b7 " + availNow() + " questions" : "Nothing selected yet";
+    $("pickSum").textContent = opt.scope === "pick" && opt.picks.length ? opt.picks.length + " subtopic" + (opt.picks.length > 1 ? "s" : "") + " \u00b7 " + availNow() + " questions" : "Choose one or more";
     [].forEach.call($("optScope").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.scope)); });
     [].forEach.call($("optSub").children, function (b) { var v = b.getAttribute("data-v"); b.setAttribute("aria-checked", String(v === "*" ? opt.picks.length === Object.keys(subs).length : opt.picks.indexOf(v) >= 0)); });
     [].forEach.call($("optCount").children, function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-v") === opt.n)); });
