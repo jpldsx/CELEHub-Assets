@@ -25,7 +25,7 @@
 
   var topic = (new URLSearchParams(location.search).get("t") || "").toLowerCase();
   var T = Q.TOPICS.filter(function (t) { return t.id === topic; })[0];
-  var opt = { n: 10, mode: "free", secs: 60, mins: 10 }, minsTouched = false, avail = 0;
+  var opt = { n: 25, mode: "free", secs: 60, mins: 10, sub: "" }, minsTouched = false, avail = 0, subs = {};
   var qs = [], perm = {}, ans = {}, cur = 0, state = "setup", startedAt = 0, tick = null, itemEnd = 0, totalEnd = 0, usedMs = 0, grading = false;
   var result = null, rv = [], rvIdx = 0, rvFilter = "all";
 
@@ -39,19 +39,29 @@
   ]).then(function (a) {
     if (!(a[0] && a[0].ok && a[0].name)) { location.replace("./"); return; }
     avail = (a[1] && a[1].ok && a[1].topics[topic]) || 0;
+    subs = (a[1] && a[1].subs && a[1].subs[topic]) || {};
     if (!avail) { fatal("No questions in " + T.name + " yet. Check back soon."); return; }
     buildSetup(); show("setup"); if (window.QuizLook) QuizLook.reveal();
   }).catch(function () { fatal("Couldn't load. Check your connection and refresh."); });
 
   /* ---------------- setup ---------------- */
-  function countOptions() { var o = [25, 50, 75].filter(function (v) { return v <= avail; }); return o.length ? o : [avail]; }
+  function availNow() { return opt.sub ? (subs[opt.sub] || 0) : avail; }
+  function countOptions() { var a = availNow(), o = [25, 50, 75].filter(function (v) { return v <= a; }); return o.length ? o : [a]; }
+  function paintCounts() {
+    var co = countOptions(); if (co.indexOf(opt.n) < 0) opt.n = co[0];
+    $("optCount").innerHTML = co.map(function (v) { return '<button type="button" role="radio" data-v="' + v + '">' + v + "</button>"; }).join("");
+  }
+  function paintSubs() {
+    var names = Object.keys(subs); $("subBlock").hidden = names.length < 2; if (names.length < 2) return;
+    $("optSub").innerHTML = '<button type="button" role="radio" data-v="">All <small>' + avail + "</small></button>" + names.map(function (n) { return '<button type="button" role="radio" data-v="' + esc(n) + '">' + esc(n) + " <small>" + subs[n] + "</small></button>"; }).join("");
+  }
   function buildSetup() {
     $("setupTitle").textContent = T.name;
     $("setup").style.setProperty("--t1", T.tint || "#4f46e5");
     if (window.QuizLook) document.querySelector(".su-hero").style.background = QuizLook.grad(T.tint || "#4f46e5");
     $("setupSub").textContent = (T.full ? T.full + " \u00b7 " : "") + avail + " question" + (avail === 1 ? "" : "s");
-    var co = countOptions(); opt.n = co[0];
-    $("optCount").innerHTML = co.map(function (v) { return '<button type="button" role="radio" data-v="' + v + '">' + v + "</button>"; }).join("");
+    paintSubs(); paintCounts();
+    $("optSub").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.sub = b.getAttribute("data-v"); paintCounts(); paintSetup(); } });
     $("optCount").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.n = +b.getAttribute("data-v"); paintSetup(); } });
     $("optMode").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.mode = b.getAttribute("data-v"); paintSetup(); } });
     $("timeChips").addEventListener("click", function (e) {
@@ -74,6 +84,7 @@
   };
   var CHIPS = { item: [15, 30, 45, 60, 90, 120], total: [30, 45, 60, 90, 120] };
   function paintSetup(typing) {
+    [].forEach.call($("optSub").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.sub)); });
     [].forEach.call($("optCount").children, function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-v") === opt.n)); });
     [].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.mode)); });
     $("modeHelp").textContent = HELP[opt.mode];
@@ -99,7 +110,7 @@
     if (opt.mode === "item" && !(opt.secs >= 5 && opt.secs <= 600)) { msg.textContent = "Choose between 5 and 600 seconds."; return; }
     if (opt.mode === "total" && !(opt.mins >= 1 && opt.mins <= 360)) { msg.textContent = "Choose between 1 and 360 minutes."; return; }
     var b = $("startBtn"); b.disabled = true; msg.className = "gate-msg"; msg.textContent = "Getting your questions…";
-    fetch("/api/questions?topic=" + encodeURIComponent(topic) + "&n=" + opt.n, { credentials: "same-origin", cache: "no-store" })
+    fetch("/api/questions?topic=" + encodeURIComponent(topic) + "&n=" + opt.n + (opt.sub ? "&sub=" + encodeURIComponent(opt.sub) : ""), { credentials: "same-origin", cache: "no-store" })
       .then(function (r) { return r.json().then(function (d) { return { r: r, d: d }; }); })
       .then(function (x) {
         if (x.r.status === 401) { location.replace("./"); return; }
@@ -146,7 +157,7 @@
     var flipT = null, swapping = false;
   function fillQ(q) {
     var len = q.q.length, longest = Math.max.apply(null, q.c.map(function (c) { return c.length; }));
-    $("qNum").textContent = "Question " + (cur + 1);
+    $("qNum").innerHTML = "Question " + (cur + 1) + (q.sub ? ' <span class="q-sub">\u00b7 ' + esc(q.sub) + "</span>" : "");
     $("qText").innerHTML = M(q.q);
     $("qCard").setAttribute("data-size", len <= 70 ? "1" : len <= 140 ? "2" : len <= 260 ? "3" : "4");
     var box = $("qChoices");
@@ -278,7 +289,7 @@
     if (!r) { card.innerHTML = '<p class="text-secondary mb-0">Nothing here.</p>'; return; }
     var label = { ok: "Correct", bad: "Wrong", skip: "Unanswered" }[r.status];
     var order = perm[r.id] || r.c.map(function (_, i) { return i; });
-    card.innerHTML = '<div class="q-num">Question ' + (r.pos + 1) + ' <span class="q-chip ' + r.status + '">' + label + '</span></div><h2 class="q-text">' + M(r.q) + '</h2><div class="q-choices">' +
+    card.innerHTML = '<div class="q-num">Question ' + (r.pos + 1) + ' <span class="q-chip ' + r.status + '">' + label + '</span>' + (r.sub ? ' <span class="q-sub">\u00b7 ' + esc(r.sub) + "</span>" : "") + '</div><h2 class="q-text">' + M(r.q) + '</h2><div class="q-choices">' +
       order.map(function (o, p) {
         var isAns = o === r.ans, isPick = o === r.pick, cls = isAns ? " is-right" : isPick ? " is-wrong" : "";
         var tag = isAns && isPick ? "Your answer · correct" : isAns ? "Correct answer" : isPick ? "Your answer" : "";
