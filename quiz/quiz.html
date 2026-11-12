@@ -42,8 +42,12 @@
       </div>
       <div class="su-panel">
        <div class="su-block" id="subBlock" hidden>
-         <div class="su-label">Subtopic</div>
-         <div id="optSub" class="su-subs" role="radiogroup" aria-label="Subtopic"></div>
+        <div class="su-label">What to practice</div>
+        <div id="optScope" class="su-modes two" role="radiogroup" aria-label="Scope">
+            <button type="button" role="radio" data-v="all"><b>Whole bank</b><span>Random mix of everything</span></button>
+            <button type="button" role="radio" data-v="pick"><b>Pick subtopics</b><span>Choose one or more</span></button>
+        </div>
+        <div id="optSub" class="su-subs" role="group" aria-label="Subtopics" hidden></div>
        </div>
         <div class="su-block">
           <div class="su-label">Questions</div>
