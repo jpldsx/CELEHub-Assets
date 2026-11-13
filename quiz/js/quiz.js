@@ -278,6 +278,34 @@
       if (k === "ArrowRight") rvGo(rvIdx + 1); else if (k === "ArrowLeft") rvGo(rvIdx - 1);
     }
   });
+  /* ---------------- ask the admin ---------------- */
+  function helpView(v) { ["helpAsk", "helpForm", "helpDone"].forEach(function (k) { $(k).hidden = k !== v; }); }
+  function openHelp(direct) {
+    helpView(direct ? "helpForm" : "helpAsk"); $("helpStatus").textContent = ""; $("helpStatus").className = "gate-msg";
+    $("helpQ").max = qs.length; $("helpQ").value = direct && rv[rvIdx] ? rv[rvIdx].pos + 1 : "";
+    $("help").hidden = false; (direct ? $("helpMsg") : $("helpYes")).focus();
+  }
+  function closeHelp() { $("help").hidden = true; }
+  $("btnHelp").addEventListener("click", function () { $("helpMsg").value = ""; openHelp(true); });
+  $("helpNo").addEventListener("click", closeHelp); $("helpCancel").addEventListener("click", closeHelp); $("helpClose").addEventListener("click", closeHelp);
+  $("helpYes").addEventListener("click", function () { helpView("helpForm"); $("helpMsg").focus(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("help").hidden) closeHelp(); });
+  $("helpForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var st = $("helpStatus"), msg = $("helpMsg").value.trim(), n = parseInt($("helpQ").value, 10), btn = $("helpSend");
+    if (msg.length < 5) { st.className = "gate-msg bad"; st.textContent = "Please write a few words about the problem."; return; }
+    var qid = n >= 1 && n <= qs.length ? qs[n - 1].id : 0;
+    btn.disabled = true; st.className = "gate-msg"; st.textContent = "Sending…";
+    fetch("/api/support", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: topic, kind: $("helpKind").value, message: msg, qid: qid }) })
+      .then(function (r) { return r.json().then(function (d) { return { r: r, d: d }; }); })
+      .then(function (x) {
+        if (x.r.status === 401) { location.replace("./"); return; }
+        if (!x.d.ok) throw new Error(x.d.message || "Couldn't send your message.");
+        $("helpMsg").value = ""; helpView("helpDone"); $("helpClose").focus();
+      }).catch(function (err) { st.className = "gate-msg bad"; st.textContent = err.message || "Couldn't send your message."; })
+      .then(function () { btn.disabled = false; });
+  });
+
   window.addEventListener("beforeunload", function (e) { if (state === "exam" && Object.keys(ans).length) { e.preventDefault(); e.returnValue = ""; } });
 
   /* ---------------- review ---------------- */
@@ -295,6 +323,7 @@
     var defs = [["all", "All"], ["bad", "Wrong"], ["skip", "Unanswered"], ["ok", "Correct"]];
     $("rvFilters").innerHTML = defs.filter(function (d) { return d[0] === "all" || counts[d[0]] > 0; }).map(function (d) { return '<button type="button" data-f="' + d[0] + '">' + d[1] + " (" + counts[d[0]] + ")</button>"; }).join("");
     rvFilter = wrong ? "bad" : "all"; applyFilter(); show("review");
+    setTimeout(function () { if (state === "review") openHelp(false); }, 1100);
   }
   function applyFilter() {
     rv = result.results.filter(function (r) { return rvFilter === "all" || r.status === rvFilter; });
