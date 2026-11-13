@@ -128,38 +128,39 @@
     
     <!-- admin support -->
     <div id="help" class="q-modal" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
-      <div class="q-modal-card">
+      <div class="nt-card">
         <div id="helpAsk">
-          <h2 id="helpTitle" class="h5">Need help from the admin?</h2>
-          <p class="text-secondary">Found a wrong answer, a mistake in a choice, or a problem that doesn&rsquo;t look right? Let the admin know and it will be checked.</p>
-          <div class="d-flex gap-2 justify-content-end">
-            <button id="helpNo" type="button" class="btn q-btn">No, thanks</button>
-            <button id="helpYes" type="button" class="btn btn-accent">Yes, contact admin</button>
-          </div>
+          <span class="nt-eyebrow">Admin support</span>
+          <h2 id="helpTitle" class="nt-title">Found something wrong?</h2>
+          <p class="nt-text">Tell the admin about a wrong answer key, a mistaken choice or an unclear problem. It will be checked.</p>
+          <button id="helpYes" type="button" class="btn btn-accent nt-btn">Yes, contact admin</button>
+          <button id="helpNo" type="button" class="btn q-btn nt-btn nt-ghost">No, thanks</button>
         </div>
         <form id="helpForm" novalidate hidden>
-          <h2 class="h5">Message the admin</h2>
-          <label class="form-label small fw-semibold mt-2" for="helpKind">What is it about?</label>
-          <select id="helpKind" class="form-select">
+          <span class="nt-eyebrow">Admin support</span>
+          <h2 class="nt-title nt-title-sm">What&rsquo;s wrong?</h2>
+          <label class="nt-label" for="helpKind">Type</label>
+          <select id="helpKind" class="form-select nt-input">
             <option value="key">The marked answer is wrong</option>
             <option value="choice">A choice has a mistake</option>
             <option value="question">The question is unclear or wrong</option>
             <option value="other">Something else</option>
           </select>
-          <label class="form-label small fw-semibold mt-2" for="helpQ">Question number in this quiz <span class="text-secondary fw-normal">(optional)</span></label>
-          <input id="helpQ" type="number" class="form-control" min="1" inputmode="numeric" placeholder="e.g. 7">
-          <label class="form-label small fw-semibold mt-2" for="helpMsg">Your message</label>
-          <textarea id="helpMsg" class="form-control" rows="4" maxlength="600" placeholder="Tell the admin what looks wrong"></textarea>
+          <label class="nt-label" for="helpQ">Question number <span>(optional)</span></label>
+          <input id="helpQ" type="number" class="form-control nt-input" min="1" inputmode="numeric" placeholder="e.g. 7">
+          <label class="nt-label" for="helpMsg">Message</label>
+          <textarea id="helpMsg" class="form-control nt-input" rows="3" maxlength="600" placeholder="Tell the admin what looks wrong"></textarea>
           <div id="helpStatus" class="gate-msg" role="status"></div>
-          <div class="d-flex gap-2 justify-content-end mt-2">
-            <button id="helpCancel" type="button" class="btn q-btn">Cancel</button>
-            <button id="helpSend" type="submit" class="btn btn-accent">Send</button>
+          <div class="nt-row">
+            <button id="helpCancel" type="button" class="btn q-btn nt-btn">Cancel</button>
+            <button id="helpSend" type="submit" class="btn btn-accent nt-btn">Send</button>
           </div>
         </form>
         <div id="helpDone" hidden>
-          <h2 class="h5">Message sent</h2>
-          <p class="text-secondary">Thank you. The admin has received it.</p>
-          <div class="d-flex justify-content-end"><button id="helpClose" type="button" class="btn btn-accent">Close</button></div>
+          <span class="nt-eyebrow">Sent</span>
+          <h2 class="nt-title">Thank you.</h2>
+          <p class="nt-text">The admin has received your message.</p>
+          <button id="helpClose" type="button" class="btn btn-accent nt-btn">Close</button>
         </div>
       </div>
     </div>
