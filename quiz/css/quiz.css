@@ -293,3 +293,16 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 .sub-card .su-subs { overflow-y: auto; margin: .8rem 0 1rem; padding: .1rem .1rem .3rem; }
 .sub-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 #subSum { color: var(--muted); font-weight: 700; }
+
+/* ---- entry notice ---- */
+#notice { padding: clamp(.5rem, 3vw, 2rem); background: radial-gradient(900px 520px at 85% 0%, rgba(124,58,237,.5), transparent 65%), radial-gradient(700px 500px at 0% 100%, rgba(34,211,238,.28), transparent 60%), rgba(12,16,40,.94); backdrop-filter: blur(8px); }
+.nt-card { position: relative; overflow: hidden; width: min(780px, 100%); min-height: min(580px, 100%); display: flex; flex-direction: column; justify-content: center; background: var(--surface); border-radius: 28px; padding: clamp(1.6rem, 6vw, 3.8rem); box-shadow: 0 30px 80px rgba(0,0,0,.5); animation: ntIn .5s cubic-bezier(.2,.8,.2,1) both; }
+.nt-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 8px; background: linear-gradient(90deg, #4f46e5, #7c3aed, #22d3ee); }
+.nt-eyebrow { font-size: .8rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #7c3aed; }
+.nt-title { font-size: clamp(2.1rem, 7vw, 3.6rem); font-weight: 850; line-height: 1.04; letter-spacing: -.025em; color: var(--text); margin: .7rem 0 1.2rem; }
+.nt-text { font-size: clamp(1.05rem, 2.6vw, 1.3rem); line-height: 1.55; color: var(--muted); margin: 0 0 .7rem; max-width: 36ch; }
+.nt-text b { color: var(--text); }
+.nt-sub { color: var(--text); font-weight: 650; }
+.nt-btn { margin-top: 1.8rem; padding: 1.1rem 1.4rem; font-size: 1.2rem; font-weight: 800; border-radius: 16px; width: 100%; }
+@keyframes ntIn { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .nt-card { animation: none; } }
