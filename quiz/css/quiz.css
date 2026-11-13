@@ -295,7 +295,7 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 #subSum { color: var(--muted); font-weight: 700; }
 
 /* ---- entry notice ---- */
-#notice { padding: clamp(.5rem, 3vw, 2rem); background: radial-gradient(900px 520px at 85% 0%, rgba(124,58,237,.5), transparent 65%), radial-gradient(700px 500px at 0% 100%, rgba(34,211,238,.28), transparent 60%), rgba(12,16,40,.94); backdrop-filter: blur(8px); }
+#notice, #help { padding: clamp(.5rem, 3vw, 2rem); background: radial-gradient(900px 520px at 85% 0%, rgba(124,58,237,.5), transparent 65%), radial-gradient(700px 500px at 0% 100%, rgba(34,211,238,.28), transparent 60%), rgba(12,16,40,.94); backdrop-filter: blur(8px); }
 .nt-card { position: relative; overflow: hidden; width: min(780px, 100%); min-height: min(580px, 100%); display: flex; flex-direction: column; justify-content: center; background: var(--surface); border-radius: 28px; padding: clamp(1.6rem, 6vw, 3.8rem); box-shadow: 0 30px 80px rgba(0,0,0,.5); animation: ntIn .5s cubic-bezier(.2,.8,.2,1) both; }
 .nt-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 8px; background: linear-gradient(90deg, #4f46e5, #7c3aed, #22d3ee); }
 .nt-eyebrow { font-size: .8rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #7c3aed; }
@@ -306,3 +306,15 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 .nt-btn { margin-top: 1.8rem; padding: 1.1rem 1.4rem; font-size: 1.2rem; font-weight: 800; border-radius: 16px; width: 100%; }
 @keyframes ntIn { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .nt-card { animation: none; } }
+
+/* ---- admin support prompt (shares the notice look) ---- */
+#help .nt-card { justify-content: flex-start; max-height: 100%; overflow-y: auto; }
+#help .nt-card > div, #help .nt-card > form { margin-block: auto; }
+.nt-title-sm { font-size: clamp(1.8rem, 5vw, 2.6rem); margin-bottom: .8rem; }
+.nt-ghost { margin-top: .7rem; background: transparent; border-color: var(--border); color: var(--muted); }
+.nt-label { display: block; margin: .8rem 0 .3rem; font-size: .85rem; font-weight: 750; color: var(--text); }
+.nt-label span { font-weight: 500; color: var(--muted); }
+.nt-input { font-size: 1.05rem; padding: .7rem .9rem; border-radius: 12px; }
+.nt-row { display: flex; gap: .7rem; }
+.nt-row .nt-btn { margin-top: 1.2rem; }
+.nt-row .nt-btn:first-child { flex: 1; } .nt-row .nt-btn:last-child { flex: 2; }
