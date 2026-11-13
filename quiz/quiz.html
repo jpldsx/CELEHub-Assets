@@ -105,6 +105,7 @@
       <div class="q-actions">
         <button id="btnAgain" type="button" class="btn btn-accent"><i class="bi bi-arrow-repeat"></i> Try again</button>
         <a class="btn q-btn" href="./"><i class="bi bi-grid"></i> Other topics</a>
+        <button id="btnHelp" type="button" class="btn q-btn"><i class="bi bi-life-preserver"></i> Report a problem</button>
       </div>
       <div id="rvFilters" class="q-seg q-filters" role="group" aria-label="Show"></div>
       <div class="q-stage"><article id="rvCard" class="q-card"></article></div>
@@ -125,6 +126,44 @@
       </div>
     </div>
     
+    <!-- admin support -->
+    <div id="help" class="q-modal" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="q-modal-card">
+        <div id="helpAsk">
+          <h2 id="helpTitle" class="h5">Need help from the admin?</h2>
+          <p class="text-secondary">Found a wrong answer, a mistake in a choice, or a problem that doesn&rsquo;t look right? Let the admin know and it will be checked.</p>
+          <div class="d-flex gap-2 justify-content-end">
+            <button id="helpNo" type="button" class="btn q-btn">No, thanks</button>
+            <button id="helpYes" type="button" class="btn btn-accent">Yes, contact admin</button>
+          </div>
+        </div>
+        <form id="helpForm" novalidate hidden>
+          <h2 class="h5">Message the admin</h2>
+          <label class="form-label small fw-semibold mt-2" for="helpKind">What is it about?</label>
+          <select id="helpKind" class="form-select">
+            <option value="key">The marked answer is wrong</option>
+            <option value="choice">A choice has a mistake</option>
+            <option value="question">The question is unclear or wrong</option>
+            <option value="other">Something else</option>
+          </select>
+          <label class="form-label small fw-semibold mt-2" for="helpQ">Question number in this quiz <span class="text-secondary fw-normal">(optional)</span></label>
+          <input id="helpQ" type="number" class="form-control" min="1" inputmode="numeric" placeholder="e.g. 7">
+          <label class="form-label small fw-semibold mt-2" for="helpMsg">Your message</label>
+          <textarea id="helpMsg" class="form-control" rows="4" maxlength="600" placeholder="Tell the admin what looks wrong"></textarea>
+          <div id="helpStatus" class="gate-msg" role="status"></div>
+          <div class="d-flex gap-2 justify-content-end mt-2">
+            <button id="helpCancel" type="button" class="btn q-btn">Cancel</button>
+            <button id="helpSend" type="submit" class="btn btn-accent">Send</button>
+          </div>
+        </form>
+        <div id="helpDone" hidden>
+          <h2 class="h5">Message sent</h2>
+          <p class="text-secondary">Thank you. The admin has received it.</p>
+          <div class="d-flex justify-content-end"><button id="helpClose" type="button" class="btn btn-accent">Close</button></div>
+        </div>
+      </div>
+    </div>
+
     <!-- submit confirmation -->
     <div id="confirm" class="q-modal" hidden role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <div class="q-modal-card">
