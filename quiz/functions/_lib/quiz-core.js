@@ -21,6 +21,8 @@ export async function init(db) {
       "ans INTEGER NOT NULL, expl TEXT NOT NULL DEFAULT '', hidden INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)"
     ),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions (topic, hidden)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS attempts (id INTEGER PRIMARY KEY AUTOINCREMENT, sid TEXT NOT NULL, topic TEXT NOT NULL, score INTEGER NOT NULL, total INTEGER NOT NULL, mock INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_attempts_t ON attempts (t)"),
   ]);
     try { await db.prepare("ALTER TABLE questions ADD COLUMN sub TEXT NOT NULL DEFAULT ''").run(); } catch { /* already there */ }
     ready = true;
@@ -144,4 +146,24 @@ export async function tgSend(env, chatId, text, extra = {}) {
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true, ...extra }),
     });
   } catch { /* nothing else to do */ }
+}
+
+/* ---------------- the activity report (daily to Telegram, or /report) ---------------- */
+export async function buildReport(env, hours = 24) {
+  const db = env.DB, since = Date.now() - hours * 3600 * 1000;
+  const one = async (sql, ...b) => (await db.prepare(sql).bind(...b).first()) || {};
+  const all = async (sql, ...b) => (await db.prepare(sql).bind(...b).all()).results || [];
+  const tot = await one("SELECT COUNT(*) AS n, COUNT(DISTINCT sid) AS v FROM attempts WHERE t >= ?", since);
+  const mock = await one("SELECT COUNT(*) AS n, SUM(CASE WHEN score * 100 >= total * 70 THEN 1 ELSE 0 END) AS p FROM attempts WHERE mock = 1 AND t >= ?", since);
+  const per = await all("SELECT topic, COUNT(*) AS n, SUM(score) AS s, SUM(total) AS q FROM attempts WHERE t >= ? GROUP BY topic", since);
+  let fresh = 0; try { fresh = (await one("SELECT COUNT(*) AS n FROM visitors WHERE created_at >= ?", since)).n || 0; } catch { /* table not created yet */ }
+  const banks = await all("SELECT topic, COUNT(*) AS c FROM questions WHERE hidden = 0 GROUP BY topic");
+  const by = Object.fromEntries(per.map((r) => [r.topic, r])), bank = Object.fromEntries(banks.map((r) => [r.topic, r.c]));
+  const lines = TOPICS.map((t) => {
+    const r = by[t];
+    return `${TOPIC_NAME[t]}: ` + (r ? `${r.n} quiz${r.n === 1 ? "" : "zes"} · avg ${r.q ? Math.round(r.s / r.q * 100) : 0}%` : "no quizzes") + ` · bank ${bank[t] || 0}`;
+  });
+  return `\u{1F4CA} <b>CELEHub Quiz \u00b7 last ${hours} hours</b>\n\n` +
+    `New visitors: <b>${fresh}</b>\nVisitors who finished a quiz: <b>${tot.v || 0}</b>\nQuizzes finished: <b>${tot.n || 0}</b>\n` +
+    `Mock board exams: <b>${mock.n || 0}</b>` + (mock.n ? ` (${mock.p || 0} reached 70%)` : "") + `\n\n` + lines.join("\n");
 }
