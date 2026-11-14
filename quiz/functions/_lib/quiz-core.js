@@ -1,6 +1,3 @@
-// Shared code for the quiz: database, the signed visitor session, and the question parser.
-// Used by functions/api/*.js. This file has no route of its own.
-
 export const TOPICS = ["hpge", "mstc", "psad"];                 // add a topic here AND in js/config.js
 export const TOPIC_NAME = { hpge: "HPGE", mstc: "MSTC", psad: "PSAD" };
 export const LIMITS = { question: 1500, choice: 400, explain: 2000, minChoices: 2, maxChoices: 6, perExam: 100 };
