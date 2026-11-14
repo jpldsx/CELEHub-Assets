@@ -1,14 +1,16 @@
-# CELEQuiz update: daily report, weak-topic report, mock board exam
+# CELEQuiz update: visitor contributions (submit page + Telegram approval)
 
-Everything below is find-and-replace. Do the files in this order. After each file, save/commit.
+Do the earlier update first (daily report, mock exam, weak topics), then this one. Save each file after editing.
 
-## Step 0. New file
-Add the new file `functions/api/report.js` (sent separately).
-
+## Step 0. Three NEW files (sent separately)
+Save them in your project like this:
+- `api-contribute.js` is saved as `functions/api/contribute.js`
+- `contribute.html` is saved in the project root, next to `quiz.html`
+- `js-contribute.js` is saved as `js/contribute.js`
 
 ## File: `functions/_lib/quiz-core.js`
 
-**1. Add two lines to the database setup**
+**1. Add the submissions table to the database setup**
 
 FIND:
 ```
@@ -17,106 +19,69 @@ FIND:
 REPLACE WITH:
 ```
     db.prepare("CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions (topic, hidden)"),
-    db.prepare("CREATE TABLE IF NOT EXISTS attempts (id INTEGER PRIMARY KEY AUTOINCREMENT, sid TEXT NOT NULL, topic TEXT NOT NULL, score INTEGER NOT NULL, total INTEGER NOT NULL, mock INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_attempts_t ON attempts (t)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS submissions (id INTEGER PRIMARY KEY AUTOINCREMENT, sid TEXT NOT NULL, topic TEXT NOT NULL, sub TEXT NOT NULL DEFAULT '', q TEXT NOT NULL, choices TEXT NOT NULL, ans INTEGER NOT NULL, sol TEXT NOT NULL, source TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending', qn INTEGER, created INTEGER NOT NULL, decided INTEGER)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_submissions_s ON submissions (status, created)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_submissions_sid ON submissions (sid, created)"),
 ```
 
 **2. Paste at the very END of the file (after the last line)**
 
 ```
-/* ---------------- the activity report (daily to Telegram, or /report) ---------------- */
-export async function buildReport(env, hours = 24) {
-  const db = env.DB, since = Date.now() - hours * 3600 * 1000;
-  const one = async (sql, ...b) => (await db.prepare(sql).bind(...b).first()) || {};
-  const all = async (sql, ...b) => (await db.prepare(sql).bind(...b).all()).results || [];
-  const tot = await one("SELECT COUNT(*) AS n, COUNT(DISTINCT sid) AS v FROM attempts WHERE t >= ?", since);
-  const mock = await one("SELECT COUNT(*) AS n, SUM(CASE WHEN score * 100 >= total * 70 THEN 1 ELSE 0 END) AS p FROM attempts WHERE mock = 1 AND t >= ?", since);
-  const per = await all("SELECT topic, COUNT(*) AS n, SUM(score) AS s, SUM(total) AS q FROM attempts WHERE t >= ? GROUP BY topic", since);
-  let fresh = 0; try { fresh = (await one("SELECT COUNT(*) AS n FROM visitors WHERE created_at >= ?", since)).n || 0; } catch { /* table not created yet */ }
-  const banks = await all("SELECT topic, COUNT(*) AS c FROM questions WHERE hidden = 0 GROUP BY topic");
-  const by = Object.fromEntries(per.map((r) => [r.topic, r])), bank = Object.fromEntries(banks.map((r) => [r.topic, r.c]));
-  const lines = TOPICS.map((t) => {
-    const r = by[t];
-    return `${TOPIC_NAME[t]}: ` + (r ? `${r.n} quiz${r.n === 1 ? "" : "zes"} · avg ${r.q ? Math.round(r.s / r.q * 100) : 0}%` : "no quizzes") + ` · bank ${bank[t] || 0}`;
-  });
-  return `\u{1F4CA} <b>CELEHub Quiz \u00b7 last ${hours} hours</b>\n\n` +
-    `New visitors: <b>${fresh}</b>\nVisitors who finished a quiz: <b>${tot.v || 0}</b>\nQuizzes finished: <b>${tot.n || 0}</b>\n` +
-    `Mock board exams: <b>${mock.n || 0}</b>` + (mock.n ? ` (${mock.p || 0} reached 70%)` : "") + `\n\n` + lines.join("\n");
+/* ---------------- contributed questions (visitors send, you approve in Telegram) ---------------- */
+const STOP = new Set("a an the of and to in is are at by for on with its it as be from that this which find what how many much each per if then".split(" "));
+const words = (q) => new Set((String(q).toLowerCase().replace(/\d+/g, " ").match(/[a-z]{3,}/g) || []).filter((w) => !STOP.has(w)));
+export const normText = (s) => String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+// the most similar question already in the bank: { n, q, score } (score 0 to 1)
+export async function nearestQuestion(db, topic, q) {
+  const w = words(q); let best = null;
+  const rows = (await db.prepare("SELECT n, q FROM questions WHERE topic = ? AND hidden = 0").bind(topic).all()).results || [];
+  for (const r of rows) {
+    const v = words(r.q); if (w.size < 3 || v.size < 3) continue;
+    let both = 0; for (const x of w) if (v.has(x)) both++;
+    const score = both / (w.size + v.size - both);
+    if (!best || score > best.score) best = { n: r.n, q: r.q, score };
+  }
+  return best;
 }
-```
-
-
-## File: `functions/api/questions.js`
-
-**3. Allow up to 100 questions**
-
-FIND:
-```
-const n = [25, 50, 75].includes(+u.searchParams.get("n")) ? +u.searchParams.get("n") : 25;
-```
-REPLACE WITH:
-```
-const n = Math.min(LIMITS.perExam, Math.max(1, parseInt(u.searchParams.get("n"), 10) || 25));
-```
-
-
-## File: `functions/api/grade.js`
-
-**4. Keep the session**
-
-FIND:
-```
-  if (!(await readSession(request, env))) return fail(401, "Please finish the quick check first.");
-```
-REPLACE WITH:
-```
-  const session = await readSession(request, env);
-  if (!session) return fail(401, "Please finish the quick check first.");
-```
-
-**5. Also read the topic**
-
-FIND:
-```
-SELECT n, q, choices, ans, expl, sub FROM
-```
-REPLACE WITH:
-```
-SELECT n, q, choices, ans, expl, sub, topic FROM
-```
-
-**6. Record the attempt (put the new lines just above the return)**
-
-FIND:
-```
-  return json({ ok: true, score, total: results.length, results });
-```
-REPLACE WITH:
-```
-  // remember the attempt (used only for the daily report); a failure here never blocks the review
-  try {
-    const seen = {}; for (const id of ids) { const r = byId.get(id); if (r) seen[r.topic] = (seen[r.topic] || 0) + 1; }
-    const topic = Object.keys(seen).sort((a, b) => seen[b] - seen[a])[0];
-    if (topic && results.length) await env.DB.prepare("INSERT INTO attempts (sid, topic, score, total, mock, t) VALUES (?, ?, ?, ?, ?, ?)").bind(String(session.n), topic, score, results.length, body.mock === true ? 1 : 0, Date.now()).run();
-  } catch { /* ignore */ }
-  return json({ ok: true, score, total: results.length, results });
+export function subCard(s, extra = "") {
+  let ch = []; try { ch = JSON.parse(s.choices); } catch { /* ignore */ }
+  return "\u{1F4DD} <b>Contributed question #" + s.id + "</b> \u00b7 " + (TOPIC_NAME[s.topic] || s.topic) + (s.sub ? " \u00b7 " + esc(s.sub) : "") +
+    "\n\u{1F464} " + esc(String(s.sid).slice(0, 60)) + "\n\n" + esc(String(s.q).slice(0, 900)) + "\n" +
+    ch.map((c, i) => "ABCD"[i] + ". " + esc(String(c).slice(0, 200)) + (i === s.ans ? "  \u2705" : "")).join("\n") +
+    "\n\n<b>Solution</b>\n" + esc(String(s.sol).slice(0, 1300)) + (s.source ? "\n\n<b>Source</b> " + esc(String(s.source).slice(0, 200)) : "") + extra;
+}
+export const subButtons = (id) => ({ reply_markup: { inline_keyboard: [[{ text: "\u2705 Approve", callback_data: "ap:" + id }, { text: "\u274C Reject", callback_data: "rj:" + id }]] } });
+// approve (adds it to the bank) or reject a pending submission. Returns { ok, text }
+export async function decideSubmission(db, id, approve) {
+  const s = await db.prepare("SELECT * FROM submissions WHERE id = ?").bind(id).first();
+  if (!s) return { ok: false, text: "Submission #" + id + " not found." };
+  if (s.status !== "pending") return { ok: false, text: "Submission #" + id + " was already " + s.status + ".", s };
+  const now = Date.now();
+  if (!approve) { await db.prepare("UPDATE submissions SET status = 'rejected', decided = ? WHERE id = ?").bind(now, id).run(); return { ok: true, text: "\u274C Rejected", s: { ...s, status: "rejected" } }; }
+  let ch = []; try { ch = JSON.parse(s.choices); } catch { /* ignore */ }
+  const expl = clean(s.sol + (s.source ? "\nSource: " + s.source : ""), LIMITS.explain);
+  const r = await addQuestions(db, s.topic, [{ q: s.q, choices: ch, ans: s.ans, expl, sub: s.sub }]);
+  const qn = r.added[0] || null;
+  await db.prepare("UPDATE submissions SET status = 'approved', qn = ?, decided = ? WHERE id = ?").bind(qn, now, id).run();
+  return { ok: true, text: qn ? "\u2705 Approved as question #" + qn + " \u00b7 fix it with /edit " + qn : "\u2705 Approved, but it was already in the bank.", s: { ...s, status: "approved", qn } };
+}
 ```
 
 
 ## File: `functions/api/tg.js`
 
-**7. Import the report builder**
+**3. Import the new helpers (find only this part of the import line)**
 
 FIND:
 ```
-import { TOPICS, TOPIC_NAME, LIMITS, init, esc, clean, parseQuestions, addQuestions, tgSend } from
+addQuestions, tgSend
 ```
 REPLACE WITH:
 ```
-import { TOPICS, TOPIC_NAME, LIMITS, init, esc, clean, parseQuestions, addQuestions, tgSend, buildReport } from
+addQuestions, tgSend, decideSubmission, subCard, subButtons
 ```
 
-**8. Add it to the command menu**
+**4. Add the commands to the Telegram menu**
 
 FIND:
 ```
@@ -124,21 +89,21 @@ FIND:
 ```
 REPLACE WITH:
 ```
-["count", "How many questions per topic"], ["report", "Activity report (/report 168 = last 7 days)"],
+["count", "How many questions per topic"], ["pending", "Contributed questions waiting for you"], ["approve", "Approve a contribution: /approve 12"], ["reject", "Reject a contribution: /reject 12"],
 ```
 
-**9. Add it to /help**
+**5. Add a line to /help**
 
 FIND:
 ```
-<code>/list</code> <code>/list mstc</code> · <code>/find word</code> · <code>/show 41</code> · <code>/count</code>
+\n<code>/del 41</code> (with Undo)
 ```
 REPLACE WITH:
 ```
-<code>/list</code> <code>/list mstc</code> · <code>/find word</code> · <code>/show 41</code> · <code>/count</code> · <code>/report</code>
+\n<b>Contributions</b> from visitors arrive with Approve / Reject buttons. <code>/pending</code> lists the waiting ones; <code>/approve 12</code> · <code>/reject 12</code> work too.\n<code>/del 41</code> (with Undo)
 ```
 
-**10. Add the /report command**
+**6. Add the new commands (put the new block directly above this line)**
 
 FIND:
 ```
@@ -146,219 +111,119 @@ FIND:
 ```
 REPLACE WITH:
 ```
-  if (cmd === "report") { const h = Math.min(720, Math.max(1, parseInt(arg, 10) || 24)); return say(await buildReport(env, h)); }
+  if (cmd === "pending") {
+    const rows = (await db.prepare("SELECT * FROM submissions WHERE status = 'pending' ORDER BY id LIMIT 10").all()).results || [];
+    if (!rows.length) return say("No contributed questions are waiting.");
+    for (const s of rows) await say(subCard(s), subButtons(s.id));
+    const left = (await db.prepare("SELECT COUNT(*) AS c FROM submissions WHERE status = 'pending'").first()).c - rows.length;
+    return left > 0 ? say(left + " more waiting. Handle these, then send /pending again.") : undefined;
+  }
+  if (cmd === "approve" || cmd === "reject") {
+    const ids = [...arg.matchAll(/\d+/g)].map((x) => +x[0]).slice(0, 30);
+    if (!ids.length) return say("Use <code>/" + cmd + " 12</code> (or several: <code>/" + cmd + " 12 13</code>). /pending shows the numbers.");
+    for (const id of ids) { const r = await decideSubmission(db, id, cmd === "approve"); await say("#" + id + ": " + r.text); }
+    return;
+  }
   if (cmd === "count") {
+```
+
+**7. Handle the Approve / Reject buttons (put the new block directly above this line)**
+
+FIND:
+```
+  if (act !== "un" || !n) { await answer("?"); return ok(); }
+```
+REPLACE WITH:
+```
+  if ((act === "ap" || act === "rj") && n) {
+    const r = await decideSubmission(env.DB, n, act === "ap");
+    await answer(r.ok ? (act === "ap" ? "Approved" : "Rejected") : r.text);
+    if (r.s) await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: cq.message.chat.id, message_id: cq.message.message_id, parse_mode: "HTML", disable_web_page_preview: true, text: subCard(r.s) + "\n\n" + (r.ok ? r.text : "Already " + r.s.status) }),
+    }).catch(() => {});
+    return ok();
+  }
+  if (act !== "un" || !n) { await answer("?"); return ok(); }
 ```
 
 
 ## File: `quiz.html`
 
-**11. Add the Mock board button**
+**8. Add a Contribute button on the result screen**
 
 FIND:
 ```
-            <button type="button" role="radio" data-v="total"><b>Exam</b><span>One big clock</span></button>
+        <a class="btn q-btn" href="./"><i class="bi bi-grid"></i> Other topics</a>
 ```
 REPLACE WITH:
 ```
-            <button type="button" role="radio" data-v="total"><b>Exam</b><span>One big clock</span></button>
-            <button type="button" role="radio" data-v="mock" hidden><b>Mock board exam</b><span>Full-length, timed, 70% passing mark</span></button>
-```
-
-**12. Add the weak-topic box**
-
-FIND:
-```
-      <div id="rvFilters" class="q-seg q-filters"
-```
-REPLACE WITH:
-```
-      <div id="weak" class="q-weak" hidden></div>
-      <div id="rvFilters" class="q-seg q-filters"
+        <a class="btn q-btn" href="./"><i class="bi bi-grid"></i> Other topics</a>
+        <a id="btnContrib" class="btn q-btn" href="contribute.html"><i class="bi bi-plus-circle"></i> Contribute</a>
 ```
 
 
 ## File: `js/quiz.js`
 
-**13. Add the mock flag to the options**
+**9. Point that button at the current topic**
 
 FIND:
 ```
-var opt = { n: 25, mode: "free", secs: 60, mins: 10, scope: "all", picks: [] }
+  $("topicBadge").hidden = false; $("topicBadge").textContent = T.name;
 ```
 REPLACE WITH:
 ```
-var opt = { n: 25, mode: "free", mock: false, secs: 60, mins: 10, scope: "all", picks: [] }
+  $("topicBadge").hidden = false; $("topicBadge").textContent = T.name;
+  $("btnContrib").href = "contribute.html?t=" + encodeURIComponent(topic);
 ```
 
-**14. Replace the Pace click handler**
+
+## File: `index.html`
+
+**10. Add the Contribute link on the home page**
 
 FIND:
 ```
-    $("optMode").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.mode = b.getAttribute("data-v"); paintSetup(); } });
+    <p id="topicErr" class="gate-msg bad" hidden></p>
 ```
 REPLACE WITH:
 ```
-    $("optMode").addEventListener("click", function (e) {
-      var b = e.target.closest("button"); if (!b) return;
-      var v = b.getAttribute("data-v");
-      if (v === "mock") { opt.mock = true; opt.mode = "total"; opt.scope = "all"; opt.picks = []; opt.n = Math.min(100, avail); opt.mins = Math.round(opt.n * 1.5); minsTouched = true; }
-      else { if (opt.mock) { opt.mock = false; minsTouched = false; paintCounts(); } opt.mode = v; }
-      paintSetup();
-    });
-```
-
-**15. Show the Mock button only when the topic has 50+ questions**
-
-FIND:
-```
-    paintSubs(); paintCounts();
-```
-REPLACE WITH:
-```
-    paintSubs(); paintCounts();
-    $("optMode").querySelector('[data-v="mock"]').hidden = avail < 50;
-```
-
-**16. Add help text for mock**
-
-FIND:
-```
-    total: "One clock for everything. It submits itself at zero."
-  };
-```
-REPLACE WITH:
-```
-    total: "One clock for everything. It submits itself at zero.",
-    mock: "Board-style run: the most questions at once, one clock, no hints. Aim for 70% or higher."
-  };
-```
-
-**17. Help text and hide the count/scope blocks in mock**
-
-FIND:
-```
-    $("modeHelp").textContent = HELP[opt.mode];
-```
-REPLACE WITH:
-```
-    $("modeHelp").textContent = HELP[opt.mock ? "mock" : opt.mode];
-    $("optCount").parentNode.hidden = opt.mock;
-    $("subBlock").hidden = opt.mock || Object.keys(subs).length < 2;
-```
-
-**18. Highlight the Mock button**
-
-FIND:
-```
-[].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.mode)); });
-```
-REPLACE WITH:
-```
-[].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === (opt.mock ? "mock" : opt.mode))); });
-```
-
-**19. Summary line for mock**
-
-FIND:
-```
-    if (opt.mode === "item") sum =
-```
-REPLACE WITH:
-```
-    if (opt.mock) sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>" + opt.mins + " min \u00b7 pass at 70%";
-    else if (opt.mode === "item") sum =
-```
-
-**20. Tell the server it was a mock**
-
-FIND:
-```
-body: JSON.stringify({ answers: body }) })
-```
-REPLACE WITH:
-```
-body: JSON.stringify({ answers: body, mock: opt.mock }) })
-```
-
-**21. Passed / Not yet title**
-
-FIND:
-```
-    $("scoreTitle").textContent = (pct >= 90 ? "Excellent! "
-```
-REPLACE WITH:
-```
-    $("scoreTitle").textContent = opt.mock ? (pct >= 70 ? "Passed. " : "Not yet. ") + sc + " / " + tot : (pct >= 90 ? "Excellent! "
-```
-
-**22. Passing mark and weak topics**
-
-FIND:
-```
-    $("scoreSub").textContent = wrong + " wrong · " + skip + " unanswered · " + fmt(usedMs) + " used";
-```
-REPLACE WITH:
-```
-    $("scoreSub").textContent = wrong + " wrong · " + skip + " unanswered · " + fmt(usedMs) + " used" + (opt.mock ? " · passing mark 70%" : "");
-    paintWeak();
-```
-
-**23. Add the weak-topic functions (put the new block just above  function applyFilter() {  )**
-
-FIND:
-```
-  function applyFilter() {
-```
-REPLACE WITH:
-```
-  var weakPicks = [];
-  function paintWeak() {
-    var by = {}, box = $("weak");
-    result.results.forEach(function (r) { if (!r.sub || !subs[r.sub]) return; var s = by[r.sub] || (by[r.sub] = { n: r.sub, t: 0, ok: 0 }); s.t++; if (r.status === "ok") s.ok++; });
-    var list = Object.keys(by).map(function (k) { return by[k]; }).filter(function (s) { return s.ok < s.t; });
-    list.sort(function (a, b) { return a.ok / a.t - b.ok / b.t || b.t - a.t; });
-    list = list.slice(0, 4); weakPicks = list.map(function (s) { return s.n; });
-    if (!list.length) { box.hidden = true; box.innerHTML = ""; return; }
-    box.innerHTML = '<div class="wk-head"><b>Weak topics</b><span>Lowest scores in this quiz</span></div>' + list.map(function (s) {
-      var p = Math.round(s.ok / s.t * 100);
-      return '<div class="wk-row"><span class="wk-name">' + esc(s.n) + '</span><span class="wk-val">' + s.ok + " / " + s.t + " \u00b7 " + p + '%</span><span class="wk-bar"><i style="width:' + p + '%"></i></span></div>';
-    }).join("") + '<button type="button" id="btnWeak" class="btn q-btn">Practice these topics</button>';
-    box.hidden = false;
-  }
-  $("weak").addEventListener("click", function (e) {
-    if (!e.target.closest("#btnWeak") || !weakPicks.length) return;
-    opt.mock = false; opt.mode = "free"; minsTouched = false; opt.scope = "pick"; opt.picks = weakPicks.slice();
-    usedMs = 0; state = "setup"; show("setup"); paintCounts(); paintSetup();
-  });
-  function applyFilter() {
+    <p id="topicErr" class="gate-msg bad" hidden></p>
+    <a class="hm-contrib" href="contribute.html">Contribute a question</a>
 ```
 
 
 ## File: `css/quiz.css`
 
-**24. Paste at the very END of the file**
+**11. Paste at the very END of the file**
 
 ```
-/* weak-topic report + mock board exam */
-.su-modes button[data-v="mock"] { grid-column: 1 / -1; }
-.q-weak { margin: 1rem 0; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
-.wk-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .8rem; margin-bottom: .6rem; }
-.wk-head span { font-size: .82rem; color: var(--muted); }
-.wk-row { display: grid; grid-template-columns: 1fr auto; gap: .15rem .8rem; padding: .35rem 0; }
-.wk-name { font-weight: 600; }
-.wk-val { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.wk-bar { grid-column: 1 / -1; height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; }
-.wk-bar i { display: block; height: 100%; background: #dc2626; border-radius: 99px; }
-.q-weak .q-btn { margin-top: .7rem; }
+/* ---- contribute page ---- */
+.ct-panel { max-width: 720px; margin-inline: auto; }
+.ct-title { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 850; letter-spacing: -.02em; margin: .2rem 0 .3rem; }
+.ct-lead { color: var(--muted); margin: 0 0 1rem; }
+.ct-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.ct-row > div[hidden] { display: none; }
+.ct-gap { margin-top: .9rem; }
+.ct-choices { display: grid; gap: .5rem; }
+.ct-choice { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: .6rem; }
+.ct-letter { width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: 9px; font-weight: 800; background: var(--surface-2); color: var(--muted); }
+.ct-key { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 650; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.ct-key input { accent-color: #4f46e5; width: 1.1rem; height: 1.1rem; }
+.ct-check { display: flex; align-items: flex-start; gap: .55rem; margin: 1rem 0 .2rem; font-size: .92rem; cursor: pointer; }
+.ct-check input { margin-top: .25rem; accent-color: #4f46e5; }
+.ct-trap { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+@media (max-width: 560px) { .ct-row { grid-template-columns: 1fr; } .ct-key span { display: none; } }
+/* links to the contribute page */
+.hm-contrib { position: fixed; left: 50%; top: .9rem; transform: translateX(-50%); z-index: 15; padding: .45rem 1rem; border-radius: 999px; font-size: .85rem; font-weight: 650; color: #fff; text-decoration: none; background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hm-contrib:hover { color: #fff; background: rgba(255,255,255,.3); }
 ```
 
 
-## Cloudflare setup (after you deploy)
-1. Pages project > Settings > Variables and Secrets > add a **Secret** named `REPORT_KEY` with any long random text (30+ characters). Redeploy.
-2. Test once: in Telegram send `/report` to the quiz bot. You should get the report.
-3. Daily schedule (free): make an account at cron-job.org > Create cronjob.
-   - URL: `https://<your-quiz-site>/api/report`
-   - Schedule: every day at the hour you want (set the time zone to Asia/Manila or Asia/Shanghai)
-   - Advanced > Request method: GET > Headers: add `Authorization` = `Bearer <your REPORT_KEY>`
-   - Save. Press "Test run": the report should arrive in Telegram.
+## How it works after deploy
+1. A visitor opens **Contribute a question** (home page, or the result screen after a quiz), fills the problem, four choices, the correct choice, the step-by-step solution and an optional reference, and confirms they solved it.
+2. You get a card in Telegram with the question, the key marked, the solution, the visitor ID, and a warning if it looks similar to a question already in the bank. Tap **Approve** or **Reject**.
+3. Approve adds it to the bank at once (the solution becomes the explanation). Fix wording with `/edit N` if needed.
+4. `/pending` lists the ones still waiting. `/approve 12` and `/reject 12` also work.
+5. Limits: 5 submissions per visitor per day. A question already in the bank, or already waiting, is refused.
+No new Cloudflare secret is needed.
