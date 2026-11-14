@@ -18,6 +18,9 @@ export async function init(db) {
       "ans INTEGER NOT NULL, expl TEXT NOT NULL DEFAULT '', hidden INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)"
     ),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions (topic, hidden)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS submissions (id INTEGER PRIMARY KEY AUTOINCREMENT, sid TEXT NOT NULL, topic TEXT NOT NULL, sub TEXT NOT NULL DEFAULT '', q TEXT NOT NULL, choices TEXT NOT NULL, ans INTEGER NOT NULL, sol TEXT NOT NULL, source TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending', qn INTEGER, created INTEGER NOT NULL, decided INTEGER)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_submissions_s ON submissions (status, created)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_submissions_sid ON submissions (sid, created)"),
     db.prepare("CREATE TABLE IF NOT EXISTS attempts (id INTEGER PRIMARY KEY AUTOINCREMENT, sid TEXT NOT NULL, topic TEXT NOT NULL, score INTEGER NOT NULL, total INTEGER NOT NULL, mock INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_attempts_t ON attempts (t)"),
   ]);
@@ -163,4 +166,43 @@ export async function buildReport(env, hours = 24) {
   return `\u{1F4CA} <b>CELEHub Quiz \u00b7 last ${hours} hours</b>\n\n` +
     `New visitors: <b>${fresh}</b>\nVisitors who finished a quiz: <b>${tot.v || 0}</b>\nQuizzes finished: <b>${tot.n || 0}</b>\n` +
     `Mock board exams: <b>${mock.n || 0}</b>` + (mock.n ? ` (${mock.p || 0} reached 70%)` : "") + `\n\n` + lines.join("\n");
+}
+
+/* ---------------- contributed questions (visitors send, you approve in Telegram) ---------------- */
+const STOP = new Set("a an the of and to in is are at by for on with its it as be from that this which find what how many much each per if then".split(" "));
+const words = (q) => new Set((String(q).toLowerCase().replace(/\d+/g, " ").match(/[a-z]{3,}/g) || []).filter((w) => !STOP.has(w)));
+export const normText = (s) => String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+// the most similar question already in the bank: { n, q, score } (score 0 to 1)
+export async function nearestQuestion(db, topic, q) {
+  const w = words(q); let best = null;
+  const rows = (await db.prepare("SELECT n, q FROM questions WHERE topic = ? AND hidden = 0").bind(topic).all()).results || [];
+  for (const r of rows) {
+    const v = words(r.q); if (w.size < 3 || v.size < 3) continue;
+    let both = 0; for (const x of w) if (v.has(x)) both++;
+    const score = both / (w.size + v.size - both);
+    if (!best || score > best.score) best = { n: r.n, q: r.q, score };
+  }
+  return best;
+}
+export function subCard(s, extra = "") {
+  let ch = []; try { ch = JSON.parse(s.choices); } catch { /* ignore */ }
+  return "\u{1F4DD} <b>Contributed question #" + s.id + "</b> \u00b7 " + (TOPIC_NAME[s.topic] || s.topic) + (s.sub ? " \u00b7 " + esc(s.sub) : "") +
+    "\n\u{1F464} " + esc(String(s.sid).slice(0, 60)) + "\n\n" + esc(String(s.q).slice(0, 900)) + "\n" +
+    ch.map((c, i) => "ABCD"[i] + ". " + esc(String(c).slice(0, 200)) + (i === s.ans ? "  \u2705" : "")).join("\n") +
+    "\n\n<b>Solution</b>\n" + esc(String(s.sol).slice(0, 1300)) + (s.source ? "\n\n<b>Source</b> " + esc(String(s.source).slice(0, 200)) : "") + extra;
+}
+export const subButtons = (id) => ({ reply_markup: { inline_keyboard: [[{ text: "\u2705 Approve", callback_data: "ap:" + id }, { text: "\u274C Reject", callback_data: "rj:" + id }]] } });
+// approve (adds it to the bank) or reject a pending submission. Returns { ok, text }
+export async function decideSubmission(db, id, approve) {
+  const s = await db.prepare("SELECT * FROM submissions WHERE id = ?").bind(id).first();
+  if (!s) return { ok: false, text: "Submission #" + id + " not found." };
+  if (s.status !== "pending") return { ok: false, text: "Submission #" + id + " was already " + s.status + ".", s };
+  const now = Date.now();
+  if (!approve) { await db.prepare("UPDATE submissions SET status = 'rejected', decided = ? WHERE id = ?").bind(now, id).run(); return { ok: true, text: "\u274C Rejected", s: { ...s, status: "rejected" } }; }
+  let ch = []; try { ch = JSON.parse(s.choices); } catch { /* ignore */ }
+  const expl = clean(s.sol + (s.source ? "\nSource: " + s.source : ""), LIMITS.explain);
+  const r = await addQuestions(db, s.topic, [{ q: s.q, choices: ch, ans: s.ans, expl, sub: s.sub }]);
+  const qn = r.added[0] || null;
+  await db.prepare("UPDATE submissions SET status = 'approved', qn = ?, decided = ? WHERE id = ?").bind(qn, now, id).run();
+  return { ok: true, text: qn ? "\u2705 Approved as question #" + qn + " \u00b7 fix it with /edit " + qn : "\u2705 Approved, but it was already in the bank.", s: { ...s, status: "approved", qn } };
 }
