@@ -1,6 +1,3 @@
-// GET or POST /api/report  ->  sends the activity report to your Telegram chat.
-// Header:  Authorization: Bearer <REPORT_KEY>      (the secret REPORT_KEY = any long random text)
-// Call it once a day from a free scheduler (for example cron-job.org). Optional: ?hours=24 (1 to 720)
 import { init, buildReport, tgSend, json, fail } from "../_lib/quiz-core.js";
 
 function same(a, b) {
