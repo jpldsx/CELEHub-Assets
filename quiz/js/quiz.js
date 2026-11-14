@@ -31,6 +31,7 @@
   /* ---------------- start ---------------- */
   if (!T) { fatal("That topic doesn't exist."); return; }
   $("topicBadge").hidden = false; $("topicBadge").textContent = T.name;
+  $("btnContrib").href = "contribute.html?t=" + encodeURIComponent(topic);
   document.title = T.name + " quiz – CELEHub Quiz";
   Promise.all([
     fetch("/api/survey", { cache: "no-store", credentials: "same-origin" }).then(function (r) { return r.json(); }),
