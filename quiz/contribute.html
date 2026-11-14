@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Contribute a question – CELEHub Quiz</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Cpath d='M50 24L16 42l34 18 34-18z' fill='white'/%3E%3Cpath d='M30 54v14c0 5 9 10 20 10s20-5 20-10V54L50 64z' fill='white'/%3E%3Crect x='80' y='44' width='4' height='20' rx='2' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/quiz.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="mt-header sticky-top">
+    <div class="container-fluid px-3 px-lg-4 d-flex align-items-center gap-3">
+      <a class="mt-brand text-decoration-none" href="./" aria-label="CELEHub Quiz home">
+        <span class="mt-logo"><i class="bi bi-mortarboard-fill"></i></span>
+        <span class="mt-brand-text">CELE<strong>Hub</strong> Quiz</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="container-fluid px-3 px-lg-4 py-3 py-lg-4 quiz-wrap">
+    <div id="ctLoading" class="gate-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading…</div>
+
+    <section id="ctForm" class="q-panel ct-panel" hidden aria-labelledby="ctTitle">
+      <a class="q-back" href="./">&larr; Topics</a>
+      <h1 id="ctTitle" class="ct-title">Contribute a question</h1>
+      <p class="ct-lead">Send a problem with its answer key and full solution. The admin checks every submission before it joins the bank.</p>
+      <form id="ctF" novalidate>
+        <div class="ct-row">
+          <div>
+            <label class="nt-label" for="ctTopic">Subject</label>
+            <select id="ctTopic" class="form-select nt-input"></select>
+          </div>
+          <div>
+            <label class="nt-label" for="ctSub">Subtopic</label>
+            <select id="ctSub" class="form-select nt-input"></select>
+          </div>
+        </div>
+
+        <label class="nt-label" for="ctQ">Problem</label>
+        <textarea id="ctQ" class="form-control nt-input" rows="4" maxlength="1500" placeholder="State the complete problem with all given values and units."></textarea>
+
+        <div class="nt-label ct-gap">Choices <span>(select the correct one)</span></div>
+        <div id="ctChoices" class="ct-choices"></div>
+
+        <label class="nt-label" for="ctSol">Solution</label>
+        <textarea id="ctSol" class="form-control nt-input" rows="6" maxlength="2000" placeholder="Show the steps: formula, substitution, result. The admin uses this to verify the answer."></textarea>
+
+        <label class="nt-label" for="ctSrc">Reference <span>(optional)</span></label>
+        <input id="ctSrc" type="text" class="form-control nt-input" maxlength="200" placeholder="Book, code or your own problem">
+
+        <input id="ctWeb" type="text" name="website" tabindex="-1" autocomplete="off" class="ct-trap" aria-hidden="true">
+
+        <label class="ct-check"><input id="ctOk" type="checkbox"> <span>I solved this problem myself and the answer and solution are correct.</span></label>
+
+        <div id="ctMsg" class="gate-msg" role="status"></div>
+        <button id="ctSend" type="submit" class="btn btn-accent nt-btn">Submit for verification</button>
+      </form>
+    </section>
+
+    <section id="ctDone" class="q-panel ct-panel" hidden>
+      <span class="nt-eyebrow">Submitted</span>
+      <h2 class="ct-title">Thank you.</h2>
+      <p class="ct-lead">The admin will verify your solution. Approved questions are added to the bank.</p>
+      <div class="q-actions">
+        <button id="ctAgain" type="button" class="btn btn-accent">Add another</button>
+        <a class="btn q-btn" href="./">Back to topics</a>
+      </div>
+    </section>
+  </main>
+
+  <script defer src="vendor/bootstrap.bundle.min.js"></script>
+  <script defer src="js/config.js"></script>
+  <script defer src="js/contribute.js"></script>
+</body>
+</html>
