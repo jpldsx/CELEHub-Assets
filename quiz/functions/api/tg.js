@@ -1,35 +1,9 @@
-// Cloudflare Pages Function  ->  POST /api/tg      (Telegram webhook: your private question manager)
-//
-//   Add questions: type the topic command, then the questions (one or many in one message):
-//
-//       /mstc
-//       1. What is the SI unit of force?
-//       A. Joule
-//       B. Newton
-//       C. Pascal
-//       D. Watt
-//       Answer: B
-//       Explanation: F = ma, so kg*m/s^2 = newton.
-//
-//       2. Next question ...
-//
-//   Or send a .txt file with the same format and write the topic (/mstc) as its caption.
-//   /add <topic> does the same as /hpge /mstc /psad.
-//
-//   /key 41 B 42 D 43 A ..... fix many answer keys at once      /explain 41 text ... set an explanation
-//   /edit 41 + a full question  replaces question 41           /show 41   /find word   /list [topic]
-//   /del 41 (undo button)   /move 41 psad   /count   /menu   /help
-//
-// Only YOU can use it: TELEGRAM_CHAT_ID (your private chat) + the secret TG_WEBHOOK_SECRET.
-// Needs: D1 as DB, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TG_WEBHOOK_SECRET.
-// Only if TELEGRAM_CHAT_ID is a group (starts with -): also TELEGRAM_OWNER_ID = your own user id.
-
-import { TOPICS, TOPIC_NAME, LIMITS, init, esc, clean, parseQuestions, addQuestions, tgSend, buildReport } from "../_lib/quiz-core.js";
+import { TOPICS, TOPIC_NAME, LIMITS, init, esc, clean, parseQuestions, addQuestions, tgSend, decideSubmission, subCard, subButtons, buildReport } from "../_lib/quiz-core.js";
 
 const ok = () => new Response("ok");
 const MAX_FILE = 300 * 1024;
 const MENU = [
-  ["help", "Show all commands"], ["count", "How many questions per topic"], ["report", "Activity report (/report 168 = last 7 days)"], ["list", "Latest questions (/list mstc)"],
+  ["help", "Show all commands"], ["count", "How many questions per topic"], ["pending", "Contributed questions waiting for you"], ["approve", "Approve a contribution: /approve 12"], ["reject", "Reject a contribution: /reject 12"], ["report", "Activity report (/report 168 = last 7 days)"], ["list", "Latest questions (/list mstc)"],
   ["hpge", "Add questions to HPGE"], ["mstc", "Add questions to MSTC"], ["psad", "Add questions to PSAD"],
   ["key", "Fix answer keys: /key 41 B 42 D"], ["explain", "Set an explanation"], ["edit", "Replace a question"],
   ["show", "Show one question"], ["find", "Search questions"], ["del", "Remove a question"], ["move", "Move a question to another topic"],
@@ -40,7 +14,7 @@ const HELP =
   "<b>Add questions</b>\nSend <code>/mstc</code> (or /hpge, /psad) and under it one or many questions:\n<pre>1. Unit of force?\nA. Joule\nB. Newton\nC. Pascal\nD. Watt\nAnswer: B\nExplanation: F = ma</pre>" +
   "Choices A–F (2 to 6). Every question needs an <code>Answer:</code> line. A .txt file works too: attach it with the topic as caption.\n\n" +
   "<b>Answer keys</b>\n<code>/key 41 B 42 D 43 A</code> fixes many at once.\n<code>/explain 41 The reason…</code>\n<code>/edit 41</code> + a full question on the next lines replaces it.\n\n" +
-  "<b>Manage</b>\n<code>/list</code> <code>/list mstc</code> · <code>/find word</code> · <code>/show 41</code> · <code>/count</code> · <code>/report</code>\n<code>/del 41</code> (with Undo) · <code>/move 41 psad</code>\n<code>/menu</code> fills the command list when you type /";
+  "<b>Manage</b>\n<code>/list</code> <code>/list mstc</code> · <code>/find word</code> · <code>/show 41</code> · <code>/count</code> · <code>/report</code>\n<b>Contributions</b> from visitors arrive with Approve / Reject buttons. <code>/pending</code> lists the waiting ones; <code>/approve 12</code> · <code>/reject 12</code> work too.\n<code>/del 41</code> (with Undo) · <code>/move 41 psad</code>\n<code>/menu</code> fills the command list when you type /";
 
 export async function onRequestPost({ request, env }) {
   if (!env.DB || !env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return ok();
@@ -120,6 +94,19 @@ async function onText(env, chat, text) {
   }
 
   if (cmd === "report") { const h = Math.min(720, Math.max(1, parseInt(arg, 10) || 24)); return say(await buildReport(env, h)); }
+  if (cmd === "pending") {
+    const rows = (await db.prepare("SELECT * FROM submissions WHERE status = 'pending' ORDER BY id LIMIT 10").all()).results || [];
+    if (!rows.length) return say("No contributed questions are waiting.");
+    for (const s of rows) await say(subCard(s), subButtons(s.id));
+    const left = (await db.prepare("SELECT COUNT(*) AS c FROM submissions WHERE status = 'pending'").first()).c - rows.length;
+    return left > 0 ? say(left + " more waiting. Handle these, then send /pending again.") : undefined;
+  }
+  if (cmd === "approve" || cmd === "reject") {
+    const ids = [...arg.matchAll(/\d+/g)].map((x) => +x[0]).slice(0, 30);
+    if (!ids.length) return say("Use <code>/" + cmd + " 12</code> (or several: <code>/" + cmd + " 12 13</code>). /pending shows the numbers.");
+    for (const id of ids) { const r = await decideSubmission(db, id, cmd === "approve"); await say("#" + id + ": " + r.text); }
+    return;
+  }
   if (cmd === "count") {
     const rows = (await db.prepare("SELECT topic, COUNT(*) AS c FROM questions WHERE hidden = 0 GROUP BY topic").all()).results || [];
     const by = Object.fromEntries(rows.map((r) => [r.topic, r.c]));
@@ -205,6 +192,15 @@ async function onButton(env, cq) {
   const answer = (text) => fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callback_query_id: cq.id, text }),
   }).catch(() => {});
+  if ((act === "ap" || act === "rj") && n) {
+    const r = await decideSubmission(env.DB, n, act === "ap");
+    await answer(r.ok ? (act === "ap" ? "Approved" : "Rejected") : r.text);
+    if (r.s) await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: cq.message.chat.id, message_id: cq.message.message_id, parse_mode: "HTML", disable_web_page_preview: true, text: subCard(r.s) + "\n\n" + (r.ok ? r.text : "Already " + r.s.status) }),
+    }).catch(() => {});
+    return ok();
+  }
   if (act !== "un" || !n) { await answer("?"); return ok(); }
   const r = await env.DB.prepare("UPDATE questions SET hidden = 0 WHERE n = ?").bind(n).run();
   await answer(r.meta.changes ? "Restored" : "Not found");
