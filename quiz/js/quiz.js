@@ -25,7 +25,7 @@
 
   var topic = (new URLSearchParams(location.search).get("t") || "").toLowerCase();
   var T = Q.TOPICS.filter(function (t) { return t.id === topic; })[0];
-  var opt = { n: 25, mode: "free", secs: 60, mins: 10, scope: "all", picks: [] }, minsTouched = false, avail = 0, subs = {};
+  var opt = { n: 25, mode: "free", mock: false, secs: 60, mins: 10, scope: "all", picks: [] }, minsTouched = false, avail = 0, subs = {};
   var qs = [], perm = {}, ans = {}, cur = 0, state = "setup", startedAt = 0, tick = null, itemEnd = 0, totalEnd = 0, usedMs = 0, grading = false;
   var result = null, rv = [], rvIdx = 0, rvFilter = "all";
 
@@ -62,6 +62,7 @@
     if (window.QuizLook) document.querySelector(".su-hero").style.background = QuizLook.grad(T.tint || "#4f46e5");
     $("setupSub").textContent = (T.full ? T.full + " \u00b7 " : "") + avail + " question" + (avail === 1 ? "" : "s");
     paintSubs(); paintCounts();
+    $("optMode").querySelector('[data-v="mock"]').hidden = avail < 50;
     $("optScope").addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       opt.scope = b.getAttribute("data-v");
@@ -78,7 +79,13 @@
     paintCounts(); paintSetup();
     });
     $("optCount").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.n = +b.getAttribute("data-v"); paintSetup(); } });
-    $("optMode").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { opt.mode = b.getAttribute("data-v"); paintSetup(); } });
+    $("optMode").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      var v = b.getAttribute("data-v");
+      if (v === "mock") { opt.mock = true; opt.mode = "total"; opt.scope = "all"; opt.picks = []; opt.n = Math.min(100, avail); opt.mins = Math.round(opt.n * 1.5); minsTouched = true; }
+      else { if (opt.mock) { opt.mock = false; minsTouched = false; paintCounts(); } opt.mode = v; }
+      paintSetup();
+    });
     $("timeChips").addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       var v = +b.getAttribute("data-v"); if (opt.mode === "item") opt.secs = v; else { opt.mins = v; minsTouched = true; }
@@ -95,7 +102,8 @@
   var HELP = {
     free: "Take your time. Go back and forth freely.",
     item: "A clock on every question. Time's up, you move on. No going back.",
-    total: "One clock for everything. It submits itself at zero."
+    total: "One clock for everything. It submits itself at zero.",
+    mock: "Board-style run: the most questions at once, one clock, no hints. Aim for 70% or higher."
   };
   var CHIPS = { item: [15, 30, 45, 60, 90], total: [30, 45, 60, 90, 120] };
   function paintSetup(typing) {
@@ -105,8 +113,10 @@
     [].forEach.call($("optScope").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.scope)); });
     [].forEach.call($("optSub").children, function (b) { var v = b.getAttribute("data-v"); b.setAttribute("aria-checked", String(opt.picks.indexOf(v) >= 0)); });
     [].forEach.call($("optCount").children, function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-v") === opt.n)); });
-    [].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === opt.mode)); });
-    $("modeHelp").textContent = HELP[opt.mode];
+    [].forEach.call($("optMode").children, function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-v") === (opt.mock ? "mock" : opt.mode))); });
+    $("modeHelp").textContent = HELP[opt.mock ? "mock" : opt.mode];
+    $("optCount").parentNode.hidden = opt.mock;
+    $("subBlock").hidden = opt.mock || Object.keys(subs).length < 2;
     var tb = $("timeBox"), tv = $("timeVal");
     tb.hidden = opt.mode === "free";
     if (opt.mode === "total" && !minsTouched) opt.mins = Math.max(5, opt.n);
@@ -119,7 +129,8 @@
       $("timeChips").innerHTML = CHIPS[opt.mode].map(function (v) { return '<button type="button" data-v="' + v + '" aria-pressed="' + (v === cur) + '">' + v + (item ? "s" : "m") + "</button>"; }).join("");
     }
     var n = opt.n, sum;
-    if (opt.mode === "item") sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>" + opt.secs + " sec each";
+    if (opt.mock) sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>" + opt.mins + " min \u00b7 pass at 70%";
+    else if (opt.mode === "item") sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>" + opt.secs + " sec each";
     else if (opt.mode === "total") sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>" + opt.mins + " min total";
     else sum = "<b>" + n + "</b> questions<span class=\"brk\"></span>your pace";
     $("setupSum").innerHTML = sum;
@@ -252,7 +263,7 @@
     var btn = $("btnSubmit"); btn.hidden = false; btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Grading…';
     var old = $("examMsg"); if (old) old.remove();
     var body = {}; qs.forEach(function (q) { body[q.id] = ans[q.id] === undefined ? null : ans[q.id]; });
-    fetch("/api/grade", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers: body }) })
+    fetch("/api/grade", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers: body, mock: opt.mock }) })
       .then(function (r) { return r.json().then(function (d) { return { r: r, d: d }; }); })
       .then(function (x) {
         if (x.r.status === 401) { location.replace("./"); return; }
@@ -317,14 +328,34 @@
     var wrong = result.results.filter(function (r) { return r.status === "bad"; }).length, skip = result.results.filter(function (r) { return r.status === "skip"; }).length;
     $("scorePct").textContent = pct + "%"; $("scoreRing").style.setProperty("--p", pct);
     $("scoreRing").className = "q-ring " + (pct >= 75 ? "good" : pct >= 50 ? "mid" : "low");
-    $("scoreTitle").textContent = (pct >= 90 ? "Excellent! " : pct >= 75 ? "Great job! " : pct >= 50 ? "Good effort. " : "Keep practicing. ") + sc + " / " + tot;
-    $("scoreSub").textContent = wrong + " wrong · " + skip + " unanswered · " + fmt(usedMs) + " used";
+    $("scoreTitle").textContent = opt.mock ? (pct >= 70 ? "Passed. " : "Not yet. ") + sc + " / " + tot : (pct >= 90 ? "Excellent! " : pct >= 75 ? "Great job! " : pct >= 50 ? "Good effort. " : "Keep practicing. ") + sc + " / " + tot;
+    $("scoreSub").textContent = wrong + " wrong · " + skip + " unanswered · " + fmt(usedMs) + " used" + (opt.mock ? " · passing mark 70%" : "");
+    paintWeak();
     var counts = { all: tot, bad: wrong, skip: skip, ok: sc };
     var defs = [["all", "All"], ["bad", "Wrong"], ["skip", "Unanswered"], ["ok", "Correct"]];
     $("rvFilters").innerHTML = defs.filter(function (d) { return d[0] === "all" || counts[d[0]] > 0; }).map(function (d) { return '<button type="button" data-f="' + d[0] + '">' + d[1] + " (" + counts[d[0]] + ")</button>"; }).join("");
     rvFilter = wrong ? "bad" : "all"; applyFilter(); show("review");
     setTimeout(function () { if (state === "review") openHelp(false); }, 1100);
   }
+  var weakPicks = [];
+  function paintWeak() {
+    var by = {}, box = $("weak");
+    result.results.forEach(function (r) { if (!r.sub || !subs[r.sub]) return; var s = by[r.sub] || (by[r.sub] = { n: r.sub, t: 0, ok: 0 }); s.t++; if (r.status === "ok") s.ok++; });
+    var list = Object.keys(by).map(function (k) { return by[k]; }).filter(function (s) { return s.ok < s.t; });
+    list.sort(function (a, b) { return a.ok / a.t - b.ok / b.t || b.t - a.t; });
+    list = list.slice(0, 4); weakPicks = list.map(function (s) { return s.n; });
+    if (!list.length) { box.hidden = true; box.innerHTML = ""; return; }
+    box.innerHTML = '<div class="wk-head"><b>Weak topics</b><span>Lowest scores in this quiz</span></div>' + list.map(function (s) {
+      var p = Math.round(s.ok / s.t * 100);
+      return '<div class="wk-row"><span class="wk-name">' + esc(s.n) + '</span><span class="wk-val">' + s.ok + " / " + s.t + " \u00b7 " + p + '%</span><span class="wk-bar"><i style="width:' + p + '%"></i></span></div>';
+    }).join("") + '<button type="button" id="btnWeak" class="btn q-btn">Practice these topics</button>';
+    box.hidden = false;
+  }
+  $("weak").addEventListener("click", function (e) {
+    if (!e.target.closest("#btnWeak") || !weakPicks.length) return;
+    opt.mock = false; opt.mode = "free"; minsTouched = false; opt.scope = "pick"; opt.picks = weakPicks.slice();
+    usedMs = 0; state = "setup"; show("setup"); paintCounts(); paintSetup();
+  });
   function applyFilter() {
     rv = result.results.filter(function (r) { return rvFilter === "all" || r.status === rvFilter; });
     rvIdx = 0;
