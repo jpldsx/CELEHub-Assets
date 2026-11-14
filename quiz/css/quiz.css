@@ -332,6 +332,18 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 #help .nt-input { font-size: .95rem; padding: .55rem .75rem; border-radius: 10px; }
 #help .nt-row .nt-btn { margin-top: .9rem; }
 
+/* weak-topic report + mock board exam */
+.su-modes button[data-v="mock"] { grid-column: 1 / -1; }
+.q-weak { margin: 1rem 0; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.wk-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .8rem; margin-bottom: .6rem; }
+.wk-head span { font-size: .82rem; color: var(--muted); }
+.wk-row { display: grid; grid-template-columns: 1fr auto; gap: .15rem .8rem; padding: .35rem 0; }
+.wk-name { font-weight: 600; }
+.wk-val { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wk-bar { grid-column: 1 / -1; height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; }
+.wk-bar i { display: block; height: 100%; background: #dc2626; border-radius: 99px; }
+.q-weak .q-btn { margin-top: .7rem; }
+
 /* ---- entry notice: compact size ---- */
 #notice .nt-card { width: min(480px, 100%); min-height: 0; padding: clamp(1.3rem, 4vw, 2rem); border-radius: 22px; }
 #notice .nt-card::before { height: 6px; }
