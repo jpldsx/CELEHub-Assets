@@ -24,12 +24,12 @@
 // Needs: D1 as DB, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TG_WEBHOOK_SECRET.
 // Only if TELEGRAM_CHAT_ID is a group (starts with -): also TELEGRAM_OWNER_ID = your own user id.
 
-import { TOPICS, TOPIC_NAME, LIMITS, init, esc, clean, parseQuestions, addQuestions, tgSend } from "../_lib/quiz-core.js";
+import { TOPICS, TOPIC_NAME, LIMITS, init, esc, clean, parseQuestions, addQuestions, tgSend, buildReport } from "../_lib/quiz-core.js";
 
 const ok = () => new Response("ok");
 const MAX_FILE = 300 * 1024;
 const MENU = [
-  ["help", "Show all commands"], ["count", "How many questions per topic"], ["list", "Latest questions (/list mstc)"],
+  ["help", "Show all commands"], ["count", "How many questions per topic"], ["report", "Activity report (/report 168 = last 7 days)"], ["list", "Latest questions (/list mstc)"],
   ["hpge", "Add questions to HPGE"], ["mstc", "Add questions to MSTC"], ["psad", "Add questions to PSAD"],
   ["key", "Fix answer keys: /key 41 B 42 D"], ["explain", "Set an explanation"], ["edit", "Replace a question"],
   ["show", "Show one question"], ["find", "Search questions"], ["del", "Remove a question"], ["move", "Move a question to another topic"],
@@ -40,7 +40,7 @@ const HELP =
   "<b>Add questions</b>\nSend <code>/mstc</code> (or /hpge, /psad) and under it one or many questions:\n<pre>1. Unit of force?\nA. Joule\nB. Newton\nC. Pascal\nD. Watt\nAnswer: B\nExplanation: F = ma</pre>" +
   "Choices A–F (2 to 6). Every question needs an <code>Answer:</code> line. A .txt file works too: attach it with the topic as caption.\n\n" +
   "<b>Answer keys</b>\n<code>/key 41 B 42 D 43 A</code> fixes many at once.\n<code>/explain 41 The reason…</code>\n<code>/edit 41</code> + a full question on the next lines replaces it.\n\n" +
-  "<b>Manage</b>\n<code>/list</code> <code>/list mstc</code> · <code>/find word</code> · <code>/show 41</code> · <code>/count</code>\n<code>/del 41</code> (with Undo) · <code>/move 41 psad</code>\n<code>/menu</code> fills the command list when you type /";
+  "<b>Manage</b>\n<code>/list</code> <code>/list mstc</code> · <code>/find word</code> · <code>/show 41</code> · <code>/count</code> · <code>/report</code>\n<code>/del 41</code> (with Undo) · <code>/move 41 psad</code>\n<code>/menu</code> fills the command list when you type /";
 
 export async function onRequestPost({ request, env }) {
   if (!env.DB || !env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return ok();
@@ -119,6 +119,7 @@ async function onText(env, chat, text) {
     return sayLong(out);
   }
 
+  if (cmd === "report") { const h = Math.min(720, Math.max(1, parseInt(arg, 10) || 24)); return say(await buildReport(env, h)); }
   if (cmd === "count") {
     const rows = (await db.prepare("SELECT topic, COUNT(*) AS c FROM questions WHERE hidden = 0 GROUP BY topic").all()).results || [];
     const by = Object.fromEntries(rows.map((r) => [r.topic, r.c]));
