@@ -1,4 +1,3 @@
-// CELEHub Quiz: setup -> exam (flashcards) -> review. Answers never reach the browser until Submit.
 (function () {
   "use strict";
   var Q = window.QUIZ || { TOPICS: [] };
