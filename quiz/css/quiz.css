@@ -351,3 +351,23 @@ a.hm-card:hover .hm-go { transform: translateX(8px); }
 #notice .nt-title { font-size: clamp(1.55rem, 4.5vw, 1.9rem); margin: .4rem 0 .6rem; letter-spacing: -.02em; }
 #notice .nt-text { font-size: 1rem; line-height: 1.5; max-width: none; margin: 0 0 .5rem; }
 #notice .nt-btn { margin-top: 1rem; padding: .8rem 1rem; font-size: 1rem; border-radius: 12px; }
+
+/* ---- contribute page ---- */
+.ct-panel { max-width: 720px; margin-inline: auto; }
+.ct-title { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 850; letter-spacing: -.02em; margin: .2rem 0 .3rem; }
+.ct-lead { color: var(--muted); margin: 0 0 1rem; }
+.ct-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.ct-row > div[hidden] { display: none; }
+.ct-gap { margin-top: .9rem; }
+.ct-choices { display: grid; gap: .5rem; }
+.ct-choice { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: .6rem; }
+.ct-letter { width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: 9px; font-weight: 800; background: var(--surface-2); color: var(--muted); }
+.ct-key { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 650; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.ct-key input { accent-color: #4f46e5; width: 1.1rem; height: 1.1rem; }
+.ct-check { display: flex; align-items: flex-start; gap: .55rem; margin: 1rem 0 .2rem; font-size: .92rem; cursor: pointer; }
+.ct-check input { margin-top: .25rem; accent-color: #4f46e5; }
+.ct-trap { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+@media (max-width: 560px) { .ct-row { grid-template-columns: 1fr; } .ct-key span { display: none; } }
+/* links to the contribute page */
+.hm-contrib { position: fixed; left: 50%; top: .9rem; transform: translateX(-50%); z-index: 15; padding: .45rem 1rem; border-radius: 999px; font-size: .85rem; font-weight: 650; color: #fff; text-decoration: none; background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hm-contrib:hover { color: #fff; background: rgba(255,255,255,.3); }
